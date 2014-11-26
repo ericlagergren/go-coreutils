@@ -31,7 +31,6 @@ import (
 	flag "github.com/ogier/pflag"
 	"io"
 	"os"
-	"syscall"
 	"text/tabwriter"
 	"unicode"
 	"unicode/utf8"
@@ -160,10 +159,6 @@ func WC(fname string, stdin bool) {
 	}
 
 	countComplicated := *printWords || *printLineLength
-
-	if *printBytes || *printChars || *printLines || countComplicated {
-		syscall.Madvise(BUFFER, syscall.MADV_SEQUENTIAL)
-	}
 
 	// If we simply want the bytes we can ignore the overhead (see: GNU
 	// wc.c by Paul Rubin and David MacKenzie) of counting lines, chars,
