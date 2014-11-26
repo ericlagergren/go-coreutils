@@ -22,6 +22,8 @@
 	Paul Rubin, phr@ocf.berkeley.edu and David MacKenzie, djm@gnu.ai.mit.edu
 */
 
+// +build linux
+
 package main
 
 import (
@@ -67,14 +69,14 @@ the following order: newline, word, character, byte, maximum line length.
       --version  output version information and exit
 
 Report wc bugs to ericscottlagergren@gmail.com
-Go coreutils home page: <https://www.github.com/EricLagerg/coreutils/>
+Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
 `
-	NEW_LINE = '\n'
-	RETURN   = '\r'
-	F_FEED   = '\f'
-	H_TAB    = '\t'
-	V_TAB    = '\v'
-	SPACE    = ' '
+	NEW_LINE = rune('\n')
+	RETURN   = rune('\r')
+	F_FEED   = rune('\f')
+	H_TAB    = rune('\t')
+	V_TAB    = rune('\v')
+	SPACE    = rune(' ')
 	NULL     = rune(0x0)
 )
 
@@ -135,7 +137,7 @@ func Count(s, sep []byte) int64 {
 	return count
 }
 
-func WC(fname string, stdin bool) {
+func WC(fname string, stdin bool, ctr int) {
 	// Our temp number of lines, words, chars, and bytes
 	var (
 		lines      int64
@@ -154,8 +156,9 @@ func WC(fname string, stdin bool) {
 		inFile, err = os.Open(fname)
 		defer inFile.Close()
 
-		if err != nil {
-			panic(err)
+		if err != nil && err == err.(*os.PathError) {
+			fmt.Printf("invalid filname \"%s\" (arg/line %v)\n", fname, ctr)
+			return
 		}
 	}
 
@@ -315,6 +318,7 @@ func WC(fname string, stdin bool) {
 	totalChars += chars
 	totalLines += lines
 	totalWords += words
+
 	if lineLength > maxLineLength {
 		maxLineLength = lineLength
 	}
@@ -356,26 +360,27 @@ func main() {
 	}
 
 	if len(args) > 0 && args[0] != "-" {
-		for _, f := range args {
-			WC(f, false)
+		for i, f := range args {
+			WC(f, false, i)
 		}
 	} else if *filesFrom != "" {
+		i := 0
 		file, err := os.Open(*filesFrom)
 		if err != nil {
 			panic(err)
 		}
 		defer file.Close()
-
-		lines := []string{}
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			lines = append(lines, scanner.Text())
-		}
-		for _, l := range lines {
-			WC(l, false)
+		r := bufio.NewReader(file)
+		for {
+			l, _, err := r.ReadLine()
+			WC(string(l), false, i)
+			if err == io.EOF {
+				break
+			}
+			i++
 		}
 	} else {
-		WC("-", true)
+		WC("-", true, 0)
 	}
 
 	defer tabWriter.Flush()
