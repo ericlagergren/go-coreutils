@@ -22,7 +22,7 @@
 	Paul Rubin, phr@ocf.berkeley.edu and David MacKenzie, djm@gnu.ai.mit.edu
 */
 
-// +build linux
+// +build windows
 
 package main
 
