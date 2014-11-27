@@ -22,7 +22,7 @@
 	Paul Rubin, phr@ocf.berkeley.edu and David MacKenzie, djm@gnu.ai.mit.edu
 */
 
-// +build windows
+// +build linux
 
 package main
 
@@ -144,7 +144,7 @@ func WC(fname string, stdin bool, ctr int) {
 		chars      int64
 		bytez      int64
 		lineLength int64
-		linePos    = int64(1)
+		linePos    int64
 		inWord     int64
 		prev       = NULL
 	)
@@ -235,6 +235,11 @@ func WC(fname string, stdin bool, ctr int) {
 						lineLength = linePos
 					}
 					linePos = 0
+					if prev == NEW_LINE {
+						linePos++
+						words += inWord
+						inWord = 1
+					}
 				case RETURN:
 					fallthrough
 				case F_FEED:
@@ -270,10 +275,6 @@ func WC(fname string, stdin bool, ctr int) {
 						linePos++
 						words += inWord
 						inWord = 1
-					case NEW_LINE:
-						linePos++
-						words += inWord
-						inWord = 1
 					case H_TAB:
 						linePos++
 					}
@@ -291,6 +292,7 @@ func WC(fname string, stdin bool, ctr int) {
 				chars++
 				bytez += int64(s)
 				b = b[s:]
+				fmt.Printf("%v %v %U\n", linePos, words, r)
 				prev = r
 			}
 
@@ -306,6 +308,11 @@ func WC(fname string, stdin bool, ctr int) {
 				lineLength = linePos
 			}
 			words += inWord
+			// Catch case of file ending in a new line where we add an
+			// additional word
+			if prev == NEW_LINE {
+				words--
+			}
 		}
 	}
 
