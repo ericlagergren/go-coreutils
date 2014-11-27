@@ -292,7 +292,6 @@ func WC(fname string, stdin bool, ctr int) {
 				chars++
 				bytez += int64(s)
 				b = b[s:]
-				fmt.Printf("%v %v %U\n", linePos, words, r)
 				prev = r
 			}
 
