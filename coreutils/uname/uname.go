@@ -1,6 +1,7 @@
-/* Go uname -- print system information
+/*
+   Go uname -- print system information
 
-   Copyright (C) 1989-2014 Free Software Foundation, Inc.
+   Copyright (C) 2014 Eric Lagergren
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

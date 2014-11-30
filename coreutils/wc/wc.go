@@ -1,5 +1,6 @@
 /*
 	Go wc - print the lines, words, bytes, and characters in files
+
 	Copyright (C) 2014 Eric Lagergren
 
 	This program is free software: you can redistribute it and/or modify
