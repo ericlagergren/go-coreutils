@@ -6,8 +6,12 @@ This is a port of GNU's coreutils (http://www.gnu.org/software/coreutils/).
 
 ### Completed:
 wc
+
 uname
+
 cat*
+
+chown**
 
 These utilities should be nearly identical to GNU's coreutils, and should have *relatively* the same speed. For example, wc.go counts chars in 550MB file in < 15sec, wc.c in ~11sec on (Intel core i3 2.66ghz running Debian 3.2.63-2+deb7u1 x86_64).
 
