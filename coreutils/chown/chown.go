@@ -152,8 +152,8 @@ var (
 
 	// Change the owner (group) of a file only if it has this uid (gid).
 	// -1 means there's no restriction.
-	ReqUid = -1
-	ReqGid = -1
+	reqUid = -1
+	reqGid = -1
 
 	mute          = *silent || *silent2
 	DO_NOT_FOLLOW = false
@@ -196,14 +196,14 @@ func uidToName(uid uint32) (string, error) {
 	return u.Username, nil
 }
 
-func walk(path string, info os.FileInfo, uid, gid, ReqUid, ReqGid int) bool {
+func walk(path string, info os.FileInfo, uid, gid, reqUid, reqGid int) bool {
 	var ok bool
 	var fileInfo os.FileInfo
 	var err error
 
 	sym := false
 
-	ok = ChangeOwner(path, info, uid, gid, ReqUid, ReqGid)
+	ok = ChangeOwner(path, info, uid, gid, reqUid, reqGid)
 
 	names, err := readDirNames(path)
 	if err != nil {
@@ -229,13 +229,13 @@ func walk(path string, info os.FileInfo, uid, gid, ReqUid, ReqGid int) bool {
 			// our recursive chowning
 			if sym && *travAll && fileInfo.IsDir() {
 				filename, _ = os.Readlink(filename)
-				ok = walk(filename, fileInfo, uid, gid, ReqUid, ReqGid)
+				ok = walk(filename, fileInfo, uid, gid, reqUid, reqGid)
 			} else if sym && fileInfo.Mode().IsRegular() {
-				ok = ChangeOwner(filename, fileInfo, uid, gid, ReqUid, ReqGid)
+				ok = ChangeOwner(filename, fileInfo, uid, gid, reqUid, reqGid)
 			} else if fileInfo.IsDir() {
-				ok = walk(filename, fileInfo, uid, gid, ReqUid, ReqGid)
+				ok = walk(filename, fileInfo, uid, gid, reqUid, reqGid)
 			} else {
-				ok = ChangeOwner(filename, fileInfo, uid, gid, ReqUid, ReqGid)
+				ok = ChangeOwner(filename, fileInfo, uid, gid, reqUid, reqGid)
 			}
 		}
 	}
@@ -258,7 +258,7 @@ func readDirNames(dirname string) ([]string, error) {
 }
 
 // Returns true if chown is successful on all files
-func ChownFiles(fname string, uid, gid, ReqUid, ReqGid int) bool {
+func ChownFiles(fname string, uid, gid, reqUid, reqGid int) bool {
 	ok := false
 
 	if !*deref {
@@ -269,11 +269,11 @@ func ChownFiles(fname string, uid, gid, ReqUid, ReqGid int) bool {
 			}
 		}
 		if *recursive {
-			if walk(fname, fi, uid, gid, ReqUid, ReqGid) {
+			if walk(fname, fi, uid, gid, reqUid, reqGid) {
 				ok = true
 			}
 		} else {
-			if ChangeOwner(fname, fi, uid, gid, ReqUid, ReqGid) {
+			if ChangeOwner(fname, fi, uid, gid, reqUid, reqGid) {
 				ok = true
 			}
 		}
@@ -285,11 +285,11 @@ func ChownFiles(fname string, uid, gid, ReqUid, ReqGid int) bool {
 			}
 		}
 		if *recursive {
-			if walk(fname, fi, uid, gid, ReqUid, ReqGid) {
+			if walk(fname, fi, uid, gid, reqUid, reqGid) {
 				ok = true
 			}
 		} else {
-			if ChangeOwner(fname, fi, uid, gid, ReqUid, ReqGid) {
+			if ChangeOwner(fname, fi, uid, gid, reqUid, reqGid) {
 				ok = true
 			}
 		}
@@ -298,7 +298,7 @@ func ChownFiles(fname string, uid, gid, ReqUid, ReqGid int) bool {
 	return ok
 }
 
-func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, ReqUid, ReqGid int) bool {
+func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid int) bool {
 	var status RCStatus
 	var doChown bool
 	var changed bool
@@ -374,7 +374,7 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, ReqUid, ReqGid in
 			// we'll have to hope that said system is using 64 bit ints.
 			// (Which is becoming more and more common.)
 			if fi.Fd() <= uintptr(MAX_INT) {
-				status = RestrictedChown(int(fi.Fd()), fname, origStat, uid, gid, ReqUid, ReqGid)
+				status = RestrictedChown(int(fi.Fd()), fname, origStat, uid, gid, reqUid, reqGid)
 			} else {
 				panic("Go sucks, use C (just kidding)")
 			}
@@ -447,7 +447,7 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, ReqUid, ReqGid in
 	return ok
 }
 
-func RestrictedChown(cwd_fd int, file string, origStat os.FileInfo, uid, gid, ReqUid, ReqGid int) RCStatus {
+func RestrictedChown(cwd_fd int, file string, origStat os.FileInfo, uid, gid, reqUid, reqGid int) RCStatus {
 	var status RCStatus
 
 	openFlags := syscall.O_NONBLOCK | syscall.O_NOCTTY
@@ -458,7 +458,7 @@ func RestrictedChown(cwd_fd int, file string, origStat os.FileInfo, uid, gid, Re
 	fileInfo, err := os.Stat(file)
 	fileMode := fileInfo.Mode()
 
-	if ReqUid == -1 && ReqGid == -1 {
+	if reqUid == -1 && reqGid == -1 {
 		return RC_DO_ORDINARY_CHOWN
 	}
 
@@ -486,7 +486,7 @@ func RestrictedChown(cwd_fd int, file string, origStat os.FileInfo, uid, gid, Re
 		status = RC_ERROR
 	} else if !os.SameFile(origStat, fileInfo) {
 		status = RC_INODE_CHANGED
-	} else if ReqUid == -1 || uint32(ReqUid) == fstat.Uid && ReqGid == -1 || uint32(ReqGid) == fstat.Gid { // Sneaky chown lol
+	} else if reqUid == -1 || uint32(reqUid) == fstat.Uid && reqGid == -1 || uint32(reqGid) == fstat.Gid { // Sneaky chown lol
 		if err := syscall.Fchown(fd, uid, gid); err == nil {
 			if err := syscall.Close(fd); err == nil {
 				return RC_OK
@@ -591,6 +591,7 @@ func DescribeChange(file string, changed CHStatus, olduser, oldgroup, user, grou
 // string(s) (e.g. eric:root -> args[0] == eric && args[1] == root)
 func main() {
 	var a []string
+	var b []string
 	var inFile string
 	var shopts bool // Which file is the starting file?
 	var u string
@@ -631,16 +632,48 @@ func main() {
 		}
 		u = strconv.FormatUint(uint64(stat_t.Uid), 10)
 		g = strconv.FormatUint(uint64(stat_t.Gid), 10)
-	} else if *from != "" && *rfile == "" {
-		a = strings.Split(*from, ":")
-	} else if *rfile != "" && *from != "" {
-		fmt.Fprint(os.Stderr, "cannot specify both --from and --rfile")
-		os.Exit(1)
 	} else {
 		a = strings.Split(args[0], ":")
 	}
 
-	if *rfile == "" || (*from == "" && *rfile == "") {
+	if *from != "" {
+		b = strings.Split(*from, ":")
+		// If input is a uid
+		if ok, err := strconv.Atoi(b[1]); err == nil {
+			if _, err = uidToName(uint32(ok)); err == nil {
+				reqUid = ok
+			}
+			// If it's a username
+		} else if ok, err := nameToUid(b[1]); err == nil {
+			reqUid = ok
+			// If nothing supplied
+		} else if b[1] == "" {
+			reqUid = -1
+			// Woohoo errors!!1!
+		} else {
+			fmt.Fprintf(os.Stderr, "invalid username/uid %s\n", b[1])
+			os.Exit(1)
+		}
+
+		// If input is a gid
+		if ok, err := strconv.Atoi(b[1]); err == nil {
+			if _, err = gidToName(uint32(ok)); err == nil {
+				reqGid = ok
+			}
+			// If it's a groupname
+		} else if ok, err := nameToGid(b[1]); err == nil {
+			reqGid = ok
+			// If nothing supplied
+		} else if b[1] == "" {
+			reqGid = -1
+			// Woohoo errors!!1!
+		} else {
+			fmt.Fprintf(os.Stderr, "invalid groupame/gid %s\n", b[1])
+			os.Exit(1)
+		}
+	}
+
+	if *rfile == "" {
 		u = a[0]
 		g = a[1]
 	}
@@ -689,10 +722,10 @@ func main() {
 	}
 
 	if *debug { // Mainly for me
-		fmt.Printf("%v %v %v %v %v\n", inFile, optUid, optGid, ReqUid, ReqGid)
+		fmt.Printf("%v %v %v %v %v\n", inFile, optUid, optGid, reqUid, reqGid)
 	}
 
-	if !ChownFiles(inFile, optUid, optGid, ReqUid, ReqGid) {
+	if !ChownFiles(inFile, optUid, optGid, reqUid, reqGid) {
 		os.Exit(1) // Exit 1 if any files aren't chowned
 	}
 }

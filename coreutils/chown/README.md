@@ -4,4 +4,6 @@ we need to install a patch**
 ### IMPORTANT NOTES:
 
 - (1) `-R` could get stuck on looped symlinks (e.g. foo -> bar -> foo -> bar)
-- (2) `--from=` doesn't work yet
+
+### PATCH NOTES: 
+- (1) fixed `--from=` on 03 Dec, 2014
