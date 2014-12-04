@@ -75,9 +75,7 @@ Written by Eric Lagergren.
 Inspired by David MacKenzie and Jim Meyering.`
 
 	EXIT_FAILURE = `Try 'chown --help' for more information`
-
-	ROOT_INODE = 2 // Root inode is 2 on linux (0 is NULL, 1 is bad blocks)
-	MAX_INT    = int(^uint(0) >> 1)
+	MAX_INT      = int(^uint(0) >> 1)
 )
 
 // Copied from http://golang.org/src/pkg/os/types.go
@@ -166,6 +164,8 @@ var (
 	// I mean, it hasn't hung my system... yet.
 	//anchor        = make(map[uint64]bool)
 
+	ROOT_INODE uint64
+
 	SkipDir  = errors.New("skip this directory")
 	CantFind = errors.New("can't find user/group/uid/gid")
 )
@@ -202,6 +202,20 @@ func uidToName(uid uint32) (string, error) {
 		return "", CantFind
 	}
 	return u.Username, nil
+}
+
+func UserGroupStr(user, group string) string {
+	var spec string
+	if user != "" {
+		if group != "" {
+			spec = fmt.Sprintf("%s:%s", user, group)
+		} else {
+			spec = fmt.Sprintf("%s", user)
+		}
+	} else if group != "" {
+		spec = fmt.Sprintf("%s", group)
+	}
+	return spec
 }
 
 func walk(path string, info os.FileInfo, uid, gid, reqUid, reqGid int) bool {
@@ -555,28 +569,21 @@ func DescribeChange(file string, changed CHStatus, olduser, oldgroup, user, grou
 
 	if user != "" {
 		userbool = true
+	} else {
+		olduser = ""
 	}
 	if group != "" {
 		groupbool = true
+	} else {
+		oldgroup = ""
 	}
 
 	if changed == CH_NOT_APPLIED {
 		fmt.Printf("neither symbolic link '%s' nor referent has been changed\n", file)
 	}
 
-	spec := fmt.Sprintf("'%s:%s'", user, group)
-	var oldspec string
-	if userbool {
-		if groupbool {
-			oldspec = fmt.Sprintf("'%s:%s'", olduser, oldgroup)
-		} else {
-			oldspec = fmt.Sprintf("'%s:%s'", olduser, nil)
-		}
-	} else if groupbool {
-		oldspec = fmt.Sprintf("'%s:%s'", nil, oldgroup)
-	} else {
-		oldspec = ""
-	}
+	spec := UserGroupStr(user, group)
+	oldspec := UserGroupStr(olduser, oldgroup)
 
 	switch changed {
 	case CH_SUCCEEDED:
@@ -688,7 +695,7 @@ func main() {
 		} else {
 			fmt.Printf("chown: missing operand after '%s'\n", flag.Arg(0))
 		}
-		fmt.Print(EXIT_FAILURE)
+		fmt.Println(EXIT_FAILURE)
 		os.Exit(1)
 	}
 
@@ -701,7 +708,8 @@ func main() {
 		stat_t := syscall.Stat_t{}
 		err := syscall.Stat(*rfile, &stat_t)
 		if err != nil {
-			fmt.Printf("cannot stat rfile '%s'\n", *rfile)
+			fmt.Printf("failed to get attributes of '%s'\n", *rfile)
+			os.Exit(1)
 		}
 		optUid = int(stat_t.Uid)
 		optGid = int(stat_t.Gid)
@@ -715,6 +723,15 @@ func main() {
 		idArr := strings.Split(*from, ":")
 		reqUid = DetermineInput(idArr[0], true)
 		reqGid = DetermineInput(idArr[1], false)
+	}
+
+	if *recursive && *pr {
+		stat_t := syscall.Stat_t{}
+		if err := syscall.Stat("/", &stat_t); err != nil {
+			fmt.Printf("failed to get attributes of %q\n", "/")
+			os.Exit(1)
+		}
+		ROOT_INODE = stat_t.Ino
 	}
 
 	if shopts {
