@@ -74,6 +74,8 @@ There is NO WARRANTY, to the extent permitted by law.
 Written by Eric Lagergren.
 Inspired by David MacKenzie and Jim Meyering.`
 
+	EXIT_FAILURE = `Try 'chown --help' for more information`
+
 	ROOT_INODE = 2 // Root inode is 2 on linux (0 is NULL, 1 is bad blocks)
 	MAX_INT    = int(^uint(0) >> 1)
 )
@@ -145,10 +147,9 @@ var (
 	travAll   = flag.BoolP("N1O1L1O1N1G1O1P1T2", "L", false, "traverse every sym link")
 	noTrav    = flag.BoolP("N1O1L1O1N1G1O1P1T3", "P", true, "don't traverse any sym links")
 	version   = flag.Bool("version", false, "print program's version\n")
-	debug     = flag.BoolP("debug", "d", false, "print cli vars entered")
 
 	optUid = -1 // Specified uid; -1 if not to be changed.
-	optGid = -1 // Specified uid; -1 if not to be changed.
+	optGid = -1 // Specified gid; -1 if not to be changed.
 
 	// Change the owner (group) of a file only if it has this uid (gid).
 	// -1 means there's no restriction.
@@ -593,7 +594,7 @@ func DescribeChange(file string, changed CHStatus, olduser, oldgroup, user, grou
 			} else if groupbool {
 				fmt.Printf("failed to change group of '%s' from %s to %s\n", file, oldspec, spec)
 			} else {
-				fmt.Printf("failed to change ownership of %s", file)
+				fmt.Printf("failed to change ownership of %s\n", file)
 			}
 		} else {
 			if userbool {
@@ -601,7 +602,7 @@ func DescribeChange(file string, changed CHStatus, olduser, oldgroup, user, grou
 			} else if groupbool {
 				fmt.Printf("failed to change group of '%s' from %s to %s\n", file, oldspec, spec)
 			} else {
-				fmt.Printf("failed to change ownership of %s", file)
+				fmt.Printf("failed to change ownership of %s\n", file)
 			}
 			oldspec = spec
 		}
@@ -618,6 +619,38 @@ func DescribeChange(file string, changed CHStatus, olduser, oldgroup, user, grou
 	}
 }
 
+func DetermineInput(input string, user bool) int {
+	if input == "" {
+		return -1
+	} else if user {
+		if id, err := nameToUid(input); err == nil {
+			return id
+		} else {
+			if _, err = uidToName(uint32(id)); err == nil {
+				return id
+			}
+		}
+	} else if !user {
+		if id, err := nameToGid(input); err == nil {
+			return id
+		} else {
+			if _, err = uidToName(uint32(id)); err == nil {
+				return id
+			}
+		}
+	} else {
+		// Basically if the user/uid/group/gid aren't found *and* the input
+		// isn't -1, error out.
+		if user {
+			fmt.Fprintf(os.Stderr, "invalid username/uid %s\n", input)
+		} else {
+			fmt.Fprintf(os.Stderr, "invalid groupame/gid %s\n", input)
+		}
+		os.Exit(1)
+	}
+	panic("We shouldn't be here right now.")
+}
+
 // We have to do extra arg parsing here because chown doesn't use the
 // standard CLI format that other utilities do
 // For instance...
@@ -630,130 +663,70 @@ func DescribeChange(file string, changed CHStatus, olduser, oldgroup, user, grou
 // Our flags parser (pflag) *can* handle this format, but need to split the
 // string(s) (e.g. eric:root -> args[0] == eric && args[1] == root)
 func main() {
-	var a []string
-	var b []string
-	var inFile string
-	var shopts bool // Which file is the starting file?
-	var u string
-	var g string
+	shopts := false // Short opts if *rfile
+	ok := false
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "%s\n", HELP)
 		os.Exit(0)
 	}
+
 	flag.Parse()
+
 	if *version {
 		fmt.Fprintf(os.Stderr, "%s\n", VERSION)
 		os.Exit(0)
 	}
-	args := flag.Args()
 
 	if *rfile != "" {
 		shopts = true
 	}
 
-	if len(args) < 2 && !shopts {
-		fmt.Fprint(os.Stderr, "You forgot an argument! (Or two. Or more.)\nIn case you forgot how to use the program, here's how:\n\n")
-		fmt.Fprintf(os.Stderr, "%s\n", HELP)
+	if flag.NArg() < 2 || shopts && flag.NArg() < 1 {
+		if flag.NArg() == 0 {
+			fmt.Print("chown: missing operand\n")
+		} else {
+			fmt.Printf("chown: missing operand after '%s'\n", flag.Arg(0))
+		}
+		fmt.Print(EXIT_FAILURE)
+		os.Exit(1)
+	}
+
+	if *recursive && *deref && !*travAll && *noTrav {
+		fmt.Print("-R --dereference requires either -H or -L")
 		os.Exit(1)
 	}
 
 	if shopts {
-		inFile = args[0]
-	} else {
-		inFile = args[1]
-	}
-
-	if *rfile != "" && *from == "" {
 		stat_t := syscall.Stat_t{}
 		err := syscall.Stat(*rfile, &stat_t)
 		if err != nil {
-			fmt.Printf("cannot stat rfile '%s'", *rfile)
+			fmt.Printf("cannot stat rfile '%s'\n", *rfile)
 		}
-		u = strconv.FormatUint(uint64(stat_t.Uid), 10)
-		g = strconv.FormatUint(uint64(stat_t.Gid), 10)
+		optUid = int(stat_t.Uid)
+		optGid = int(stat_t.Gid)
 	} else {
-		a = strings.Split(args[0], ":")
+		idArr := strings.Split(flag.Args()[0], ":")
+		optUid = DetermineInput(idArr[0], true)
+		optGid = DetermineInput(idArr[1], false)
 	}
 
 	if *from != "" {
-		b = strings.Split(*from, ":")
-		// If input is a uid
-		if ok, err := strconv.Atoi(b[1]); err == nil {
-			if _, err = uidToName(uint32(ok)); err == nil {
-				reqUid = ok
-			}
-			// If it's a username
-		} else if ok, err := nameToUid(b[1]); err == nil {
-			reqUid = ok
-			// If nothing supplied
-		} else if b[1] == "" {
-			reqUid = -1
-			// Woohoo errors!!1!
-		} else {
-			fmt.Fprintf(os.Stderr, "invalid username/uid %s\n", b[1])
-			os.Exit(1)
-		}
-
-		if ok, err := strconv.Atoi(b[1]); err == nil {
-			if _, err = gidToName(uint32(ok)); err == nil {
-				reqGid = ok
-			}
-		} else if ok, err := nameToGid(b[1]); err == nil {
-			reqGid = ok
-		} else if b[1] == "" {
-			reqGid = -1
-		} else {
-			fmt.Fprintf(os.Stderr, "invalid groupame/gid %s\n", b[1])
-			os.Exit(1)
-		}
+		idArr := strings.Split(*from, ":")
+		reqUid = DetermineInput(idArr[0], true)
+		reqGid = DetermineInput(idArr[1], false)
 	}
 
-	if *rfile == "" {
-		u = a[0]
-		g = a[1]
-	}
-
-	if ok, err := strconv.Atoi(u); err == nil {
-		if _, err = uidToName(uint32(ok)); err == nil {
-			optUid = ok
+	if shopts {
+		for _, file := range flag.Args()[2:] {
+			ok = ChownFiles(file, optUid, optGid, reqUid, reqGid)
 		}
-	} else if ok, err := nameToUid(u); err == nil {
-		optUid = ok
-	} else if u == "" {
-		optUid = -1
 	} else {
-		fmt.Fprintf(os.Stderr, "invalid username/uid %s\n", u)
-		os.Exit(1)
-	}
-
-	if ok, err := strconv.Atoi(g); err == nil {
-		if _, err = gidToName(uint32(ok)); err == nil {
-			optGid = ok
+		for _, file := range flag.Args()[1:] {
+			ok = ChownFiles(file, optUid, optGid, reqUid, reqGid)
 		}
-	} else if ok, err := nameToGid(g); err == nil {
-		optGid = ok
-	} else if g == "" {
-		optGid = -1
-	} else {
-		fmt.Fprintf(os.Stderr, "invalid groupame/gid %s\n", g)
+	}
+	if !ok {
 		os.Exit(1)
-	}
-
-	if *noderef {
-		*deref = false
-	}
-
-	if *recursive && *deref && !*travDir && !*travAll {
-		fmt.Fprint(os.Stderr, "-R --dereference requires either -H or -L\n")
-		os.Exit(1)
-	}
-
-	if *debug { // Mainly for me
-		fmt.Printf("%v %v %v %v %v\n", inFile, optUid, optGid, reqUid, reqGid)
-	}
-
-	if !ChownFiles(inFile, optUid, optGid, reqUid, reqGid) {
-		os.Exit(1) // Exit 1 if any files aren't chowned
 	}
 }
