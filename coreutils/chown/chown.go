@@ -155,8 +155,15 @@ var (
 	reqUid = -1
 	reqGid = -1
 
-	mute          = *silent || *silent2
+	mute = *silent || *silent2
+
 	DO_NOT_FOLLOW = false
+	// I used to try to curb infine symlink loops when -R was used, but
+	// as it turns out Go just loops a lot and then quits for some reason
+	// since this does, essentially, the same thing as testing for infinite
+	// looping, I'm gonna leave it for right now.
+	// I mean, it hasn't hung my system... yet.
+	//anchor        = make(map[uint64]bool)
 
 	SkipDir  = errors.New("skip this directory")
 	CantFind = errors.New("can't find user/group/uid/gid")
@@ -200,8 +207,24 @@ func walk(path string, info os.FileInfo, uid, gid, reqUid, reqGid int) bool {
 	var ok bool
 	var fileInfo os.FileInfo
 	var err error
+	var fileIsSym bool
+	followSym := false
 
-	sym := false
+	stat_t := syscall.Stat_t{}
+	err = syscall.Stat(path, &stat_t)
+
+	/*if _, ok := anchor[stat_t.Ino]; ok {
+		fmt.Print("we've found a loop! Now exiting because loops are bad.\n")
+		os.Exit(1)
+	}*/
+
+	if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+		fileIsSym = true
+	}
+
+	if DO_NOT_FOLLOW {
+		return false
+	}
 
 	ok = ChangeOwner(path, info, uid, gid, reqUid, reqGid)
 
@@ -214,8 +237,8 @@ func walk(path string, info os.FileInfo, uid, gid, reqUid, reqGid int) bool {
 		filename := filepath.Join(path, name)
 		if !*deref {
 			fileInfo, err = os.Lstat(filename)
-			if fileInfo.Mode()&os.ModeSymlink == os.ModeSymlink {
-				sym = true
+			if fileIsSym {
+				followSym = true
 			}
 		} else {
 			fileInfo, err = os.Stat(filename)
@@ -224,14 +247,14 @@ func walk(path string, info os.FileInfo, uid, gid, reqUid, reqGid int) bool {
 		if err != nil {
 			ok = false
 		} else {
+
 			// If we're going to chown the symlink instead of the linked file,
 			// we need to do it before we follow the link and continue with
 			// our recursive chowning
-			if sym && *travAll && fileInfo.IsDir() {
+			if followSym && *travAll || *travDir { //&& fileInfo.IsDir() {
+				_ = ChangeOwner(filename, fileInfo, uid, gid, reqUid, reqGid)
 				filename, _ = os.Readlink(filename)
 				ok = walk(filename, fileInfo, uid, gid, reqUid, reqGid)
-			} else if sym && fileInfo.Mode().IsRegular() {
-				ok = ChangeOwner(filename, fileInfo, uid, gid, reqUid, reqGid)
 			} else if fileInfo.IsDir() {
 				ok = walk(filename, fileInfo, uid, gid, reqUid, reqGid)
 			} else {
@@ -268,7 +291,7 @@ func ChownFiles(fname string, uid, gid, reqUid, reqGid int) bool {
 				fmt.Printf("cannot lstat() file or directory '%s'\n", fname)
 			}
 		}
-		if *recursive {
+		if *recursive && fi.Mode()&os.ModeSymlink != os.ModeSymlink {
 			if walk(fname, fi, uid, gid, reqUid, reqGid) {
 				ok = true
 			}
@@ -334,6 +357,10 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 			DO_NOT_FOLLOW = true
 			return false
 		} else {
+			// Regardless of whether or not -f is true, print the warning
+			// because I figure it won't bug anybody and it's better to
+			// let people know they're about to do something bad than
+			// have them do it without knowing!
 			fmt.Print("warning: running chown on root directory without protection\n")
 		}
 	}
@@ -342,17 +369,29 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 		doChown = false
 	} else {
 		doChown = true
-	}
+	} /*else if reqUid == -1 && reqGid == -1 && !*verbose && !*deref {
+		doChown = true
+	}*/
 
 	if doChown {
 		if !*deref {
 			err := os.Lchown(fname, uid, gid)
 
-			// GNU chown.c returns true if the operation isn't supported.
-			// It's a POSIX thing.
-			if err != nil {
+			// GNU's chown says it ignores any error due to lack of support.
+			// Apparently "POSIX requires this behavior for any top-level sym
+			// links with -h, and implies it's required for all symlinks."
+			if e, k := err.(*os.PathError); k && e.Err == syscall.EOPNOTSUPP {
 				ok = true
 				symlinkChanged = false
+			} else if e, k := err.(*os.PathError); k && e.Err == syscall.EPERM || e.Err == syscall.EACCES {
+				if !mute {
+					fmt.Printf("%s\n", err)
+				}
+				ok = false
+			} else if err != nil {
+				ok = true
+			} else {
+				ok = false
 			}
 		} else {
 			// Double check the size of the fd because the Go's openat() wants
@@ -389,7 +428,7 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 						ok = false
 						if os.IsPermission(err) {
 							if !mute {
-								fmt.Printf("chown: changing ownership of '%s' not permitted\n", fname)
+								fmt.Printf("%s\n", err)
 							}
 						}
 					} else {
@@ -401,7 +440,7 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 						ok = false
 						if os.IsPermission(err) {
 							if !mute {
-								fmt.Printf("chown: changing ownership of '%s' not permitted\n", fname)
+								fmt.Printf("%s\n", err)
 							}
 						}
 					} else {
@@ -422,8 +461,10 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 		}
 	}
 
-	if !mute && *verbose || *changes {
-		if changed = doChown && ok && (symlinkChanged && uid != -1 || uint32(uid) == stat_t.Uid) && (gid != -1 || uint32(gid) == stat_t.Gid); changed || *verbose {
+	if *verbose || *changes && !mute {
+		if changed = doChown && ok && symlinkChanged &&
+			!((uid == -1 || uint32(uid) == stat_t.Uid) &&
+				(gid == -1 || uint32(gid) == stat_t.Gid)); changed || *verbose {
 
 			if !ok {
 				changeStatus = CH_FAILED
@@ -443,7 +484,6 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 			DescribeChange(fname, changeStatus, oldUsr, oldGroup, newUsr, newGrp)
 		}
 	}
-
 	return ok
 }
 
@@ -474,7 +514,7 @@ func RestrictedChown(cwd_fd int, file string, origStat os.FileInfo, uid, gid, re
 
 	if !(0 <= fd || errno != nil && fileMode.IsRegular()) {
 		if fd, err = syscall.Openat(cwd_fd, file, syscall.O_WRONLY|openFlags, 0); !(0 <= fd) {
-			if err != nil {
+			if err == syscall.EACCES {
 				return RC_DO_ORDINARY_CHOWN
 			} else {
 				return RC_ERROR
@@ -486,7 +526,7 @@ func RestrictedChown(cwd_fd int, file string, origStat os.FileInfo, uid, gid, re
 		status = RC_ERROR
 	} else if !os.SameFile(origStat, fileInfo) {
 		status = RC_INODE_CHANGED
-	} else if reqUid == -1 || uint32(reqUid) == fstat.Uid && reqGid == -1 || uint32(reqGid) == fstat.Gid { // Sneaky chown lol
+	} else if (reqUid == -1 || uint32(reqUid) == fstat.Uid) && (reqGid == -1 || uint32(reqGid) == fstat.Gid) { // Sneaky chown lol
 		if err := syscall.Fchown(fd, uid, gid); err == nil {
 			if err := syscall.Close(fd); err == nil {
 				return RC_OK
@@ -495,7 +535,7 @@ func RestrictedChown(cwd_fd int, file string, origStat os.FileInfo, uid, gid, re
 			}
 		} else {
 			if os.IsPermission(err) {
-				fmt.Printf("chown: changing ownership of '%s' not permitted\n", fd)
+				fmt.Printf("%s\n", err)
 			}
 			status = RC_ERROR
 		}
@@ -655,18 +695,14 @@ func main() {
 			os.Exit(1)
 		}
 
-		// If input is a gid
 		if ok, err := strconv.Atoi(b[1]); err == nil {
 			if _, err = gidToName(uint32(ok)); err == nil {
 				reqGid = ok
 			}
-			// If it's a groupname
 		} else if ok, err := nameToGid(b[1]); err == nil {
 			reqGid = ok
-			// If nothing supplied
 		} else if b[1] == "" {
 			reqGid = -1
-			// Woohoo errors!!1!
 		} else {
 			fmt.Fprintf(os.Stderr, "invalid groupame/gid %s\n", b[1])
 			os.Exit(1)
@@ -678,35 +714,27 @@ func main() {
 		g = a[1]
 	}
 
-	// If input is a uid
 	if ok, err := strconv.Atoi(u); err == nil {
 		if _, err = uidToName(uint32(ok)); err == nil {
 			optUid = ok
 		}
-		// If it's a username
 	} else if ok, err := nameToUid(u); err == nil {
 		optUid = ok
-		// If nothing supplied
 	} else if u == "" {
 		optUid = -1
-		// Woohoo errors!!1!
 	} else {
 		fmt.Fprintf(os.Stderr, "invalid username/uid %s\n", u)
 		os.Exit(1)
 	}
 
-	// If input is a gid
 	if ok, err := strconv.Atoi(g); err == nil {
 		if _, err = gidToName(uint32(ok)); err == nil {
 			optGid = ok
 		}
-		// If it's a groupname
 	} else if ok, err := nameToGid(g); err == nil {
 		optGid = ok
-		// If nothing supplied
 	} else if g == "" {
 		optGid = -1
-		// Woohoo errors!!1!
 	} else {
 		fmt.Fprintf(os.Stderr, "invalid groupame/gid %s\n", g)
 		os.Exit(1)
