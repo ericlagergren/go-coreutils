@@ -11,7 +11,7 @@ This is a port of GNU's coreutils (http://www.gnu.org/software/coreutils/).
 | wc      | 100%           |
 | uname   | 100%           |
 | cat     | 100% (might be bugs when not using simple cat (e.g. no modifying flags)   |
-| chown   | 100% (no way to prevent infinte recursion with -R right now |
+| chown   | 100% (no way to prevent infinte recursion with -R right now, although it eventually stops) |
 | whoami  | 100%           |
 | tty     | 100%           |
 
