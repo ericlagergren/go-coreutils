@@ -34,9 +34,9 @@ import (
 	"fmt"
 	flag "github.com/ogier/pflag"
 	"io"
+	"log"
 	"os"
-	//"unicode"
-	//"unicode/utf8"
+	"text/tabwriter"
 )
 
 const (
@@ -95,6 +95,9 @@ var (
 	showTabs     = flag.BoolP("show-tabs", "T", false, "display TAB characters as ^I\n")
 	ign          = flag.BoolP("unbuffered", "u", false, "(ignored)\n")
 	nP           = flag.BoolP("show-nonprinting", "v", false, "use ^ and M- notation, except for LDF and TAB\ns")
+
+	version   = flag.Bool("version", false, "print version and exit")
+	tabWriter = tabwriter.NewWriter(os.Stdout, 3, 0, 2, ' ', tabwriter.AlignRight)
 )
 
 func FormatOutput(line []byte, i uint64) {
@@ -154,12 +157,14 @@ func FormatOutput(line []byte, i uint64) {
 func Cat(fname string, stdin bool) {
 	if stdin {
 		inFile = os.Stdin
+	} else if fname == "-" {
+		inFile = os.Stdin
 	} else {
 		inFile, err = os.Open(fname)
 		defer inFile.Close()
 
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 	}
 
@@ -299,6 +304,7 @@ func main() {
 	}
 	flag.Parse()
 	args := flag.Args()
+	succ := true
 
 	if *version {
 		fmt.Fprintf(tabWriter, "%s\n", VERSION)
@@ -306,7 +312,25 @@ func main() {
 		os.Exit(0)
 	}
 
-	for _, f := range args {
-		Cat(f, false)
+	if len(args) > 0 && args[0] != "-" {
+		for _, f := range args {
+			fi, err := os.Stat(f)
+			if err != nil {
+				fmt.Println(err)
+				succ = false
+				continue
+			}
+			if fi.IsDir() {
+				fmt.Printf("cat: %s: Is a directory\n", f)
+				succ = false
+			} else {
+				Cat(f, false)
+			}
+		}
+	} else {
+		Cat("-", true)
+	}
+	if !succ {
+		os.Exit(1)
 	}
 }

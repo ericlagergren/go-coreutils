@@ -31,6 +31,7 @@ import (
 	"fmt"
 	flag "github.com/ogier/pflag"
 	"io"
+	"log"
 	"os"
 	"syscall"
 	"text/tabwriter"
@@ -136,7 +137,7 @@ func Count(s, sep []byte) int64 {
 	return count
 }
 
-func WC(fname string, stdin bool, ctr int) {
+func WC(fname string, stdin bool, ctr int) bool {
 	// Our temp number of lines, words, chars, and bytes
 	var (
 		lines      int64
@@ -157,7 +158,7 @@ func WC(fname string, stdin bool, ctr int) {
 
 		if err != nil && err == err.(*os.PathError) {
 			fmt.Printf("invalid filname \"%s\" (arg/line %v)\n", fname, ctr)
-			return
+			return false
 		}
 	}
 
@@ -178,7 +179,7 @@ func WC(fname string, stdin bool, ctr int) {
 		if err == nil {
 			bytez = statFile.Size()
 		} else {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		// Manually count bytes if Stat() fails or if we're reading from
@@ -189,7 +190,7 @@ func WC(fname string, stdin bool, ctr int) {
 				inBuffer, err := inFile.Read(BUFFER)
 
 				if err != nil && err != io.EOF {
-					panic(err)
+					log.Fatal(err)
 				}
 
 				bytez += int64(inBuffer)
@@ -213,7 +214,7 @@ func WC(fname string, stdin bool, ctr int) {
 			inBuffer, err := inFile.Read(BUFFER)
 
 			if err != nil && err != io.EOF {
-				panic(err)
+				log.Fatal(err)
 			}
 
 			lines += Count(BUFFER[:inBuffer], NEW_LINE_BYTE)
@@ -300,7 +301,7 @@ func WC(fname string, stdin bool, ctr int) {
 			}
 
 			if err != nil && err != io.EOF {
-				panic(err)
+				log.Fatal(err)
 			}
 
 			if err == io.EOF {
@@ -372,7 +373,7 @@ func main() {
 		i := 0
 		file, err := os.Open(*filesFrom)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 		defer file.Close()
 		r := bufio.NewReader(file)
