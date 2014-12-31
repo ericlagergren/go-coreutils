@@ -5,13 +5,15 @@ This is a port of GNU's coreutils (http://www.gnu.org/software/coreutils/).
 **It's currently under development.**
 
 ### Completed:
-wc
 
-uname
-
-cat*
-
-chown**
+|Utility|Completeness|
+|:_______-------|:------------|
+|wc     |100%        |
+|uname  |100%        |
+|cat    |100% (bugs?)|
+|chown  |100% (buggy -R)|
+|whoami |100%        |
+|tty    |100%        |
 
 These utilities should be nearly identical to GNU's coreutils, and should have *relatively* the same speed. For example, wc.go counts chars in 550MB file in < 15sec, wc.c in ~11sec on (Intel core i3 2.66ghz running Debian 3.2.63-2+deb7u1 x86_64).
 
