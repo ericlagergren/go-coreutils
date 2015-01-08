@@ -6,6 +6,8 @@ This is a port of GNU's coreutils (http://www.gnu.org/software/coreutils/).
 
 ### Completed:
 
+6/99
+
 | Utility | Completeness   |
 |:--------|:---------------|
 | wc      | 100%           |
@@ -19,8 +21,9 @@ These utilities should be nearly identical to GNU's coreutils, and should have *
 
 It's licensed under the GPLv3 because it's an attempted direct port from GNU's coreutils, which are licensed under GPLv3, using BSD-licensed code (Go's own source).
 
-### REQUIRES "github.com/ogier/pflag"
+### REQUIRES "github.com/ogier/pflag" and "github.com/EricLagerg/go-gnulib"
 You can get `pflag` through `go get github.com/ogier/pflag`
+You can get `pflag` through `go get github.com/EricLager/go-gnulib`
 
 ### LICENSE:
 
