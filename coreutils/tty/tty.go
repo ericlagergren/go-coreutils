@@ -23,13 +23,10 @@ Inspired by David MacKenzie <djm@gnu.ai.mit.edu>.  */
 package main
 
 import (
-	"errors"
 	"fmt"
+	gnulib "github.com/EricLagerg/go-gnulib"
 	flag "github.com/ogier/pflag"
 	"os"
-	"path/filepath"
-	"syscall"
-	"unsafe"
 )
 
 const (
@@ -72,112 +69,13 @@ Print the file name of the terminal connected to standard input.
 
 Report uname bugs to ericscottlagergren@gmail.com
 Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>`
-	DEV = "/dev"
 )
 
 var (
-	NotFound   = errors.New("device not found")
-	searchDevs = []string{
-		"/dev/console",
-		"/dev/wscons",
-		"/dev/pts/",
-		"/dev/vt/",
-		"/dev/term/",
-		"/dev/zcons/",
-	}
+	version = flag.Bool("version", false, "print version")
+	quiet1  = flag.BoolP("silent", "s", false, "no output")
+	quiet2  = flag.Bool("quiet", false, "no output")
 )
-
-func fileMode(longMode uint32) uint32 {
-	mode := longMode & ModePerm
-	switch longMode & syscall.S_IFMT {
-	case syscall.S_IFBLK:
-		mode |= ModeDevice
-	case syscall.S_IFCHR:
-		mode |= ModeDevice | ModeCharDevice
-	case syscall.S_IFDIR:
-		mode |= ModeDir
-	case syscall.S_IFIFO:
-		mode |= ModeNamedPipe
-	case syscall.S_IFLNK:
-		mode |= ModeSymlink
-	case syscall.S_IFREG:
-		// nothing to do
-	case syscall.S_IFSOCK:
-		mode |= ModeSocket
-	}
-	if longMode&syscall.S_ISGID != 0 {
-		mode |= ModeSetgid
-	}
-	if longMode&syscall.S_ISUID != 0 {
-		mode |= ModeSetuid
-	}
-	if longMode&syscall.S_ISVTX != 0 {
-		mode |= ModeSticky
-	}
-	return mode
-}
-
-func ttyNameCheckDir(stat syscall.Stat_t, dir string) (string, error) {
-	var (
-		rs       string
-		fullPath string
-	)
-
-	fp := true
-	if dir == DEV {
-		fp = false
-	}
-
-	fi, err := os.Open(dir)
-	if err != nil {
-		return "", err
-	}
-
-	names, err := fi.Readdirnames(-1)
-	devStat := syscall.Stat_t{}
-
-	for _, name := range names {
-		if !fp {
-			fullPath = filepath.Join(DEV, name)
-		} else {
-			fullPath = filepath.Join(filepath.Dir(dir), name)
-		}
-		err = syscall.Stat(fullPath, &devStat)
-		if err != nil {
-			continue
-		}
-
-		// Directories to skip
-		if fullPath == "/dev/stderr" || fullPath == "/dev/stdin" || fullPath == "/dev/stdout" || len(fullPath) >= 8 && fullPath[0:8] == "/dev/fd/" {
-			continue
-		}
-
-		mode := fileMode(devStat.Mode)
-		if mode&ModeDir != 0 {
-			rs, err = ttyNameCheckDir(stat, fullPath)
-			if err != nil {
-				continue
-			} else {
-				return rs, nil
-			}
-		} else if mode&ModeCharDevice != 0 && devStat.Ino == stat.Ino && devStat.Rdev == stat.Rdev {
-			return fullPath, nil
-		}
-	}
-	return "", NotFound
-}
-
-func Isatty(fd uintptr) bool {
-	var termios syscall.Termios
-
-	_, _, err := syscall.Syscall6(syscall.SYS_IOCTL, fd,
-		uintptr(syscall.TCGETS),
-		uintptr(unsafe.Pointer(&termios)),
-		0,
-		0,
-		0)
-	return err == 0
-}
 
 func main() {
 	flag.Usage = func() {
@@ -191,44 +89,23 @@ func main() {
 		return
 	}
 
-	var (
-		name string
-		err  error
-	)
+	silent := false
+	if *quiet1 || *quiet2 {
+		silent = true
+	}
 
 	si := os.Stdin.Fd()
-	// Preliminary tty check to save time checking directories
-	if Isatty(si) {
-		good := false
-
-		stat := syscall.Stat_t{}
-		_ = syscall.Fstat(int(si), &stat)
-
-		for _, d := range searchDevs {
-			name, err = ttyNameCheckDir(stat, d)
-			if err == nil {
-				good = true
-				break
-			}
-		}
-
-		if !good {
-			name, err = ttyNameCheckDir(stat, DEV)
-		}
-
-		if !silent {
-			if err != nil {
-				fmt.Println("tty")
-			} else if len(name) > 0 {
-				fmt.Println(name)
-			}
-		} else {
-			return
-		}
-	} else {
-		if !silent {
+	tty, err := gnulib.TtyName(si)
+	if !silent {
+		if err == gnulib.NotTty {
 			fmt.Println("not a tty")
+			os.Exit(1)
 		}
-		os.Exit(1)
+		if tty != nil {
+			fmt.Println(*tty)
+			return
+		} else {
+			fmt.Println("tty")
+		}
 	}
 }
