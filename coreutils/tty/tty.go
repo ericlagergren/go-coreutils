@@ -30,30 +30,8 @@ import (
 )
 
 const (
-	// The single letters are the abbreviations
-	// used by the String method's formatting.
-	ModeDir        = 1 << (32 - 1 - iota) // d: is a directory
-	ModeAppend                            // a: append-only
-	ModeExclusive                         // l: exclusive use
-	ModeTemporary                         // T: temporary file (not backed up)
-	ModeSymlink                           // L: symbolic link
-	ModeDevice                            // D: device file
-	ModeNamedPipe                         // p: named pipe (FIFO)
-	ModeSocket                            // S: Unix domain socket
-	ModeSetuid                            // u: setuid
-	ModeSetgid                            // g: setgid
-	ModeCharDevice                        // c: Unix character device, when ModeDevice is set
-	ModeSticky                            // t: sticky
-
-	// Mask for the type bits. For regular files, none will be set.
-	ModeType = ModeDir | ModeSymlink | ModeNamedPipe | ModeSocket | ModeDevice
-
-	ModePerm = 0777 // permission bits
-)
-
-const (
 	VERSION = `tty (Go coreutils) 1.0
-Copyright (C) 2014 Free Software Foundation, Inc.
+Copyright (C) 2014 Eric Lagergren
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
@@ -107,5 +85,9 @@ func main() {
 		} else {
 			fmt.Println("tty")
 		}
+	}
+
+	if err != nil {
+		os.Exit(1)
 	}
 }

@@ -1,5 +1,6 @@
 /*
 	Go wc - print the lines, words, bytes, and characters in files
+
 	Copyright (C) 2014 Eric Lagergren
 
 	This program is free software: you can redistribute it and/or modify
@@ -30,12 +31,14 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	flag "github.com/ogier/pflag"
 	"io"
+	"log"
 	"os"
 	"text/tabwriter"
 	"unicode"
 	"unicode/utf8"
+
+	flag "github.com/ogier/pflag"
 )
 
 // VERSION and HELP output inspired by GNU coreutils
@@ -136,7 +139,7 @@ func Count(s, sep []byte) int64 {
 	return count
 }
 
-func WC(fname string, stdin bool, ctr int) {
+func wc(fname string, stdin bool, ctr int) {
 	// Our temp number of lines, words, chars, and bytes
 	var (
 		lines      int64
@@ -171,11 +174,11 @@ func WC(fname string, stdin bool, ctr int) {
 		// A syscall is quicker than reading each byte of the file
 		statFile, err := inFile.Stat()
 
-		if err == nil {
-			bytez = statFile.Size()
-		} else {
-			panic(err)
+		if err != nil {
+			log.Fatal(err)
 		}
+
+		bytez = statFile.Size()
 
 		// Manually count bytes if Stat() fails or if we're reading from
 		// piped input (e.g. cat file.csv | wc -c -)
@@ -185,7 +188,7 @@ func WC(fname string, stdin bool, ctr int) {
 				inBuffer, err := inFile.Read(BUFFER)
 
 				if err != nil && err != io.EOF {
-					panic(err)
+					log.Fatal(err)
 				}
 
 				bytez += int64(inBuffer)
@@ -209,7 +212,7 @@ func WC(fname string, stdin bool, ctr int) {
 			inBuffer, err := inFile.Read(BUFFER)
 
 			if err != nil && err != io.EOF {
-				panic(err)
+				log.Fatal(err)
 			}
 
 			lines += Count(BUFFER[:inBuffer], NEW_LINE_BYTE)
@@ -296,7 +299,7 @@ func WC(fname string, stdin bool, ctr int) {
 			}
 
 			if err != nil && err != io.EOF {
-				panic(err)
+				log.Fatal(err)
 			}
 
 			if err == io.EOF {
@@ -362,26 +365,27 @@ func main() {
 
 	if len(args) > 0 && args[0] != "-" {
 		for i, f := range args {
-			WC(f, false, i)
+			wc(f, false, i)
 		}
 	} else if *filesFrom != "" {
-		i := 0
 		file, err := os.Open(*filesFrom)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 		defer file.Close()
+
 		r := bufio.NewReader(file)
+		i := 0
 		for {
 			l, _, err := r.ReadLine()
-			WC(string(l), false, i)
 			if err == io.EOF {
 				break
 			}
+			wc(string(l), false, i)
 			i++
 		}
 	} else {
-		WC("-", true, 0)
+		wc("-", true, 0)
 	}
 
 	defer tabWriter.Flush()
