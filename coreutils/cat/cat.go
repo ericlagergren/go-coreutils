@@ -209,11 +209,9 @@ func Cat(fname string, stdin bool) {
 					break
 				}
 
-				if bothEnds || *number {
-					i++
-				} else if *nonBlank && len(line) > 1 && line[0] != NEW_LINE {
-					i++
-				} else if i <= 0 {
+				if (bothEnds || *number) ||
+					(*nonBlank && len(line) > 1 && line[0] != NEW_LINE) ||
+					(i <= 0) {
 					i++
 				}
 
@@ -278,9 +276,8 @@ func Cat(fname string, stdin bool) {
 					}
 				}
 			}
-			if bothEnds || *number {
-				i++
-			} else if *nonBlank && len(c) != 0 && c[0] != NEW_LINE {
+			if (bothEnds || *number) ||
+				(*nonBlank && len(c) != 0 && c[0] != NEW_LINE) {
 				i++
 			}
 
