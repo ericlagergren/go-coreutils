@@ -192,6 +192,7 @@ func Cat(fname string, stdin bool) {
 		// This saves some overhead if we're printing the line as-is, except
 		// with line numbers and/or line endings ($)
 	} else if !(anyNp || *showTabs) && (bothEnds || *showEnds || *number || *nonBlank || *squeezeBlank) {
+
 		// uint64 instead if int in case we have a file that exceeds
 		// 2147483647 lines unlikely, but why not be safe?
 		i := uint64(0)
@@ -212,13 +213,10 @@ func Cat(fname string, stdin bool) {
 					i++
 				} else if *nonBlank && len(line) > 1 && line[0] != NEW_LINE {
 					i++
-				} else {
-					if i > 0 {
-						i += 0
-					} else {
-						i++
-					}
+				} else if i <= 0 {
+					i++
 				}
+
 				FormatOutput(line, i)
 
 				if err == io.EOF {
@@ -284,10 +282,10 @@ func Cat(fname string, stdin bool) {
 				i++
 			} else if *nonBlank && len(c) != 0 && c[0] != NEW_LINE {
 				i++
-			} else {
-				i += 0
 			}
+
 			FormatOutput(c, i)
+
 			if err == io.EOF {
 				break
 			}
