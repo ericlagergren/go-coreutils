@@ -189,7 +189,6 @@ func wc(fname string, stdin bool, ctr int) bool {
 
 			for {
 				inBuffer, err := inFile.Read(BUFFER)
-
 				if err != nil && err != io.EOF {
 					log.Fatal(err)
 				}
@@ -213,7 +212,6 @@ func wc(fname string, stdin bool, ctr int) bool {
 			// Read()
 
 			inBuffer, err := inFile.Read(BUFFER)
-
 			if err != nil && err != io.EOF {
 				log.Fatal(err)
 			}

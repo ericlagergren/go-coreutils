@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euf -o pipefail
+
 
 ORIG=$PWD
 
@@ -29,7 +31,7 @@ fi
 
 cd $GOROOT && cd ../
 cd src/pkg/os/
-rm -rf a/
+rm --preserve-root -r a/
 cp -r $ORIG/b/src/pkg/os/user/* user/
 if [[ $? != 0 ]]; then
 	if [[ $EUID -ne 0 ]]; then
@@ -46,6 +48,6 @@ if [[ $? != 0 ]]; then
 	fi
 fi
 cd $ORIG
-rm -rf b/
+rm --preserve-root -r b/
 
 exit 0

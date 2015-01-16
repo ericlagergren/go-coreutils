@@ -28,6 +28,7 @@ import (
 	"errors"
 	"fmt"
 	flag "github.com/ogier/pflag"
+	"log"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -372,7 +373,7 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 	fi, err := os.Open(fname)
 	if err != nil {
 		if !mute {
-			fmt.Printf("%v %s", err, fname)
+			fmt.Printf("%v %s\n", err, fname)
 		}
 		ok = false
 	}
@@ -384,12 +385,12 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 	// and so on
 	if err != nil {
 		if !mute {
-			fmt.Printf("%v %s", err, fname)
+			fmt.Printf("%v %s\n", err, fname)
 		}
 		ok = false
 	}
 
-	// Check if we've stumbled across a directory while we've
+	// Check if we've stumbled across a directory
 	if stat_t.Mode&ModeDir != 0 && stat_t.Ino == ROOT_INODE {
 		if *recursive && *pr {
 			fmt.Print("cannot run chown on root directory (--preserve-root specified\n")
@@ -454,7 +455,7 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 			if fi.Fd() <= uintptr(MAX_INT) {
 				status = RestrictedChown(int(fi.Fd()), fname, origStat, uid, gid, reqUid, reqGid)
 			} else {
-				panic("Go sucks, use C (just kidding)")
+				log.Fatalln("Go sucks, use C (just kidding)")
 			}
 
 			switch status {
@@ -495,7 +496,7 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 				doChown = false
 				ok = false
 			default:
-				panic("Now how did this happen?")
+				log.Fatalln("Now how did this happen?")
 			}
 		}
 	}
@@ -581,7 +582,7 @@ func RestrictedChown(cwd_fd int, file string, origStat os.FileInfo, uid, gid, re
 	}
 	err = syscall.Close(fd)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	return status
 }
@@ -646,7 +647,7 @@ func DescribeChange(file string, changed CHStatus, olduser, oldgroup, user, grou
 			fmt.Printf("ownership of '%s' retained\n", file)
 		}
 	default:
-		panic("let's go out with a bang!") // TODO: Good error messages lol
+		log.Fatalln("let's go out with a bang!") // TODO: Good error messages lol
 	}
 }
 
@@ -679,7 +680,7 @@ func DetermineInput(input string, user bool) int {
 		}
 		os.Exit(1)
 	}
-	panic("We shouldn't be here right now.")
+	log.Fatalln("We shouldn't be here right now.")
 }
 
 // We have to do extra arg parsing here because chown doesn't use the
@@ -719,21 +720,18 @@ func main() {
 		} else {
 			fmt.Printf("chown: missing operand after '%s'\n", flag.Arg(0))
 		}
-		fmt.Println(EXIT_FAILURE)
-		os.Exit(1)
+		log.Fatalln(EXIT_FAILURE)
 	}
 
 	if *recursive && *deref && !*travAll && *noTrav {
-		fmt.Print("-R --dereference requires either -H or -L")
-		os.Exit(1)
+		log.Fatalln("-R --dereference requires either -H or -L")
 	}
 
 	if shopts {
 		stat_t := syscall.Stat_t{}
 		err := syscall.Stat(*rfile, &stat_t)
 		if err != nil {
-			fmt.Printf("failed to get attributes of '%s'\n", *rfile)
-			os.Exit(1)
+			log.Fatalf("failed to get attributes of '%s'\n", *rfile)
 		}
 		optUid = int(stat_t.Uid)
 		optGid = int(stat_t.Gid)
@@ -752,8 +750,7 @@ func main() {
 	if *recursive && *pr {
 		stat_t := syscall.Stat_t{}
 		if err := syscall.Stat("/", &stat_t); err != nil {
-			fmt.Printf("failed to get attributes of %q\n", "/")
-			os.Exit(1)
+			log.Fatalf("failed to get attributes of %q\n", "/")
 		}
 		ROOT_INODE = stat_t.Ino
 	}
