@@ -36,6 +36,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"syscall"
 	"text/tabwriter"
 )
 
@@ -161,11 +162,10 @@ func Cat(fname string, stdin bool) {
 		inFile = os.Stdin
 	} else {
 		inFile, err = os.Open(fname)
-		defer inFile.Close()
-
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer inFile.Close()
 	}
 
 	bothEnds := *nonBlank && *showEnds || *number && *showEnds
@@ -181,6 +181,10 @@ func Cat(fname string, stdin bool) {
 	if !(*number || *showEnds || *showTabs || *nP || *squeezeBlank || *all || *nonBlank || *nPTabs || *nPEnds) {
 		for {
 			_, err = io.Copy(os.Stdout, inFile)
+			if err != nil {
+				e := err.(*os.PathError).Err
+				log.Fatalln(int(e.(syscall.Errno)))
+			}
 
 			if err == nil {
 				break
