@@ -36,7 +36,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"syscall"
 	"text/tabwriter"
 )
 
@@ -181,10 +180,6 @@ func Cat(fname string, stdin bool) {
 	if !(*number || *showEnds || *showTabs || *nP || *squeezeBlank || *all || *nonBlank || *nPTabs || *nPEnds) {
 		for {
 			_, err = io.Copy(os.Stdout, inFile)
-			if err != nil {
-				e := err.(*os.PathError).Err
-				log.Fatalln(int(e.(syscall.Errno)))
-			}
 
 			if err == nil {
 				break
@@ -320,7 +315,7 @@ func main() {
 				continue
 			}
 			if fi.IsDir() {
-				fmt.Printf("cat: %s: Is a directory\n", f)
+				log.Printf("cat: %s: Is a directory\n", f)
 				succ = false
 			} else {
 				Cat(f, false)
