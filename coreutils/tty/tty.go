@@ -24,9 +24,10 @@ package main
 
 import (
 	"fmt"
-	gnulib "github.com/EricLagerg/go-gnulib"
-	flag "github.com/ogier/pflag"
 	"os"
+
+    "github.com/EricLagerg/go-gnulib/ttyname"
+	flag "github.com/ogier/pflag"
 )
 
 const (
