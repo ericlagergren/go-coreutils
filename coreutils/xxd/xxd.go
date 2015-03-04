@@ -721,6 +721,11 @@ func main() {
 	}
 	flag.Parse()
 
+	if flag.NArg() == 0 {
+		fmt.Fprintf(os.Stderr, "no input file given\n%s\n", Help)
+		os.Exit(1)
+	}
+
 	if *version {
 		fmt.Fprintf(os.Stderr, "%s\n", Version)
 		os.Exit(0)
@@ -734,11 +739,6 @@ func main() {
 		err  error
 		file string
 	)
-
-	if flag.NArg() == 0 {
-		fmt.Fprintf(os.Stderr, "no input file given\n%s\n", Help)
-		os.Exit(1)
-	}
 
 	if flag.NArg() >= 1 {
 		file = flag.Args()[0]
