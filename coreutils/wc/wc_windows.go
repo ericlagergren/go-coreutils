@@ -120,8 +120,8 @@ var (
 	version         = flag.BoolP("version", "v", false, "")
 
 	// fatal.Fatal helper
-	fatal = log.New(os.Stderr, "", log.Lshortfile)
-	//fatal = log.New(os.Stderr, "", 0)
+	//fatal = log.New(os.Stderr, "", log.Lshortfile)
+	fatal = log.New(os.Stderr, "", 0)
 )
 
 func count(s []byte, delim byte) int64 {
