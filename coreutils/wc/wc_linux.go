@@ -42,7 +42,6 @@ import (
 	flag "github.com/ogier/pflag"
 )
 
-// Version and Help output inspired by GNU coreutils
 const (
 	Version = `Go wc (Go coreutils) 2.0
 Copyright (C) 2014 Eric Lagergren
