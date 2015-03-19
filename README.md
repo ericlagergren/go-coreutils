@@ -14,8 +14,8 @@ This is a port of GNU's coreutils (http://www.gnu.org/software/coreutils/).
 | uname   | 100%           | No             |
 | cat     | 99%            | No (In future, yes) |
 | chown   | 100% (-R has infinite recursion issues) |
-| whoami  | 100%           |                |
-| tty     | 100%           |                |
+| whoami  | 100%           | Yes            |
+| tty     | 100%           | Yes (Unix)     |
 | xxd     | 100%           | Yes (Unix/Windows) |
 
 **(Side note: Unix includes OS X unless otherwise specified.)**
@@ -26,7 +26,7 @@ For example, wc.go counts chars in 550MB file in < 15sec, wc.c in ~11sec on (Int
 
 It's licensed under the GPLv3 because it's mostly a transliteraiton of GNU's coreutils, which are licensed under the GPL.
 
-***REQUIRES "github.com/ogier/pflag" and "github.com/EricLagerg/go-gnulib"**
+**REQUIRES "github.com/ogier/pflag" and "github.com/EricLagerg/go-gnulib" **
 You can get `pflag` through `go get github.com/ogier/pflag`
 You can get `pflag` through `go get github.com/EricLager/go-gnulib/*`
 
