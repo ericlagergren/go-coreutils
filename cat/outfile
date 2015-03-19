@@ -1,0 +1,37 @@
+Doing aes-128 cbc for 3s on 16 size blocks: 14883194 aes-128 cbc's in 3.00s
+Doing aes-128 cbc for 3s on 64 size blocks: 4033375 aes-128 cbc's in 3.00s
+Doing aes-128 cbc for 3s on 256 size blocks: 1031108 aes-128 cbc's in 3.00s
+Doing aes-128 cbc for 3s on 1024 size blocks: 255164 aes-128 cbc's in 3.00s
+Doing aes-128 cbc for 3s on 8192 size blocks: 32291 aes-128 cbc's in 3.00s
+Doing aes-192 cbc for 3s on 16 size blocks: 12619664 aes-192 cbc's in 3.00s
+Doing aes-192 cbc for 3s on 64 size blocks: 2978667 aes-192 cbc's in 2.99s
+Doing aes-192 cbc for 3s on 256 size blocks: 731973 aes-192 cbc's in 2.99s
+Doing aes-192 cbc for 3s on 1024 size blocks: 204295 aes-192 cbc's in 3.00s
+Doing aes-192 cbc for 3s on 8192 size blocks: 26663 aes-192 cbc's in 3.00s
+Doing aes-256 cbc for 3s on 16 size blocks: 10774123 aes-256 cbc's in 3.00s
+Doing aes-256 cbc for 3s on 64 size blocks: 2872661 aes-256 cbc's in 3.00s
+Doing aes-256 cbc for 3s on 256 size blocks: 727411 aes-256 cbc's in 3.00s
+Doing aes-256 cbc for 3s on 1024 size blocks: 177039 aes-256 cbc's in 3.00s
+Doing aes-256 cbc for 3s on 8192 size blocks: 22085 aes-256 cbc's in 2.99s
+Doing 512 bit private rsa's for 10s: 99065 512 bit private RSA's in 10.00s
+Doing 512 bit public rsa's for 10s: 1453325 512 bit public RSA's in 10.00s
+Doing 1024 bit private rsa's for 10s: 33034 1024 bit private RSA's in 9.99s
+Doing 1024 bit public rsa's for 10s: 514115 1024 bit public RSA's in 10.00s
+Doing 2048 bit private rsa's for 10s: 4445 2048 bit private RSA's in 9.99s
+Doing 2048 bit public rsa's for 10s: 149155 2048 bit public RSA's in 10.00s
+Doing 4096 bit private rsa's for 10s: 613 4096 bit private RSA's in 10.01s
+Doing 4096 bit public rsa's for 10s: 39675 4096 bit public RSA's in 10.00s
+OpenSSL 1.0.2 22 Jan 2015
+built on: reproducible build, date unspecified
+options:bn(64,64) rc4(16x,int) des(idx,cisc,16,int) aes(partial) idea(int) blowfish(idx) 
+compiler: gcc -I. -I.. -I../include  -fPIC -DOPENSSL_PIC -DZLIB -DOPENSSL_THREADS -D_REENTRANT -DDSO_DLFCN -DHAVE_DLFCN_H -Wa,--noexecstack -D_FORTIFY_SOURCE=2 -march=x86-64 -mtune=generic -O2 -pipe -fstack-protector-strong --param=ssp-buffer-size=4 -Wl,-O1,--sort-common,--as-needed,-z,relro -m64 -DL_ENDIAN -DTERMIO -O3 -Wall -DOPENSSL_IA32_SSE2 -DOPENSSL_BN_ASM_MONT -DOPENSSL_BN_ASM_MONT5 -DOPENSSL_BN_ASM_GF2m -DSHA1_ASM -DSHA256_ASM -DSHA512_ASM -DMD5_ASM -DAES_ASM -DVPAES_ASM -DBSAES_ASM -DWHIRLPOOL_ASM -DGHASH_ASM -DECP_NISTZ256_ASM
+The 'numbers' are in 1000s of bytes per second processed.
+type             16 bytes     64 bytes    256 bytes   1024 bytes   8192 bytes
+aes-128 cbc      79377.03k    86045.33k    87987.88k    87095.98k    88175.96k
+aes-192 cbc      67304.87k    63757.42k    62670.60k    69732.69k    72807.77k
+aes-256 cbc      57461.99k    61283.43k    62072.41k    60429.31k    60508.47k
+                  sign    verify    sign/s verify/s
+rsa  512 bits 0.000101s 0.000007s   9906.5 145332.5
+rsa 1024 bits 0.000302s 0.000019s   3306.7  51411.5
+rsa 2048 bits 0.002247s 0.000067s    444.9  14915.5
+rsa 4096 bits 0.016330s 0.000252s     61.2   3967.5

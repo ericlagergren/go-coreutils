@@ -1,0 +1,9 @@
+Hello, world!
+This	is a test file to see if1 my	wc utilit y
+
+is
+able
+
+to det
+ermine the correct counts for different fi
+les.

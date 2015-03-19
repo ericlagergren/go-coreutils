@@ -6,29 +6,34 @@ This is a port of GNU's coreutils (http://www.gnu.org/software/coreutils/).
 
 ### Completed:
 
-6/99
+7/100
 
-| Utility | Completeness   |
-|:--------|:---------------|
-| wc      | 100%           |
-| uname   | 100%           |
-| cat     | 100% (might be bugs when not using simple cat (e.g. no modifying flags)   |
-| chown   | 100% (no way to prevent infinte recursion with -R right now, although it eventually stops) |
-| whoami  | 100%           |
-| tty     | 100%           |
+| Utility | Completeness   | Cross Platform |
+|:--------|:---------------|:---------------|
+| wc      | 100%           | Yes (Unix/Windows) |
+| uname   | 100%           | No             |
+| cat     | 99%            | No (In future, yes) |
+| chown   | 100% (-R has infinite recursion issues) |
+| whoami  | 100%           |                |
+| tty     | 100%           |                |
+| xxd     | 100%           | Yes (Unix/Windows) |
 
-These utilities should be nearly identical to GNU's coreutils, and should have *relatively* the same speed. For example, wc.go counts chars in 550MB file in < 15sec, wc.c in ~11sec on (Intel core i3 2.66ghz running Debian 3.2.63-2+deb7u1 x86_64).
+**(Side note: Unix includes OS X unless otherwise specified.)**
 
-It's licensed under the GPLv3 because it's an attempted direct port from GNU's coreutils, which are licensed under GPLv3, using BSD-licensed code (Go's own source).
+These utilities should be nearly identical to GNU's coreutils, and should have *relatively* the same speed. 
 
-### REQUIRES "github.com/ogier/pflag" and "github.com/EricLagerg/go-gnulib"
+For example, wc.go counts chars in 550MB file in < 15sec, wc.c in ~11sec on (Intel core i3 2.66ghz running Debian 3.2.63-2+deb7u1 x86_64).
+
+It's licensed under the GPLv3 because it's mostly a transliteraiton of GNU's coreutils, which are licensed under the GPL.
+
+***REQUIRES "github.com/ogier/pflag" and "github.com/EricLagerg/go-gnulib"**
 You can get `pflag` through `go get github.com/ogier/pflag`
-You can get `pflag` through `go get github.com/EricLager/go-gnulib`
+You can get `pflag` through `go get github.com/EricLager/go-gnulib/*`
 
 ### LICENSE:
 
 ```
-   Copyright (C) 2014 Eric Lagergren
+   Copyright (C) 2014-2015 Eric Lagergren
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

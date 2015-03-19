@@ -1,0 +1,78 @@
+package main
+
+import (
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"syscall"
+)
+
+type Options struct {
+	AsRegular         bool
+	Dereference       bool // check type
+	UnlinkBefore      bool
+	UnlinkAfterFailed bool
+	HardLink          bool
+	Interactive       bool
+	MoveMode          bool
+	OneFS             bool
+	RefLinkMode       bool // check type
+
+	PreserveOwnership      bool
+	PreserveLinks          bool
+	PreserveMode           bool
+	PreserveTimestamps     bool
+	ExplicitNoPreserve     bool
+	PreserveSecurityContex bool // -a or --preserve=context
+	RequirePreserveContext bool // --preserve=contex
+	SetSecurityContext     bool // -Z, set sys default contex
+	PreserveXattr          bool
+	ReduceDiagnostics      bool
+	RequirePreserveXattr   bool
+
+	DataCopyRequired bool
+	RequirePreserve  bool
+	Recursive        bool
+	SparseMode       bool // check type
+	SymbolicLink     bool
+	SetMode          bool
+	Mode             int
+
+	Update  bool
+	Verbose bool
+}
+
+func newOptions() *Options {
+	return &Options{
+		AsRegular:   true,
+		Dereference: true, // check type
+		//HardLink: ? //check type
+		//Interactive: ? //check type
+		//RefLinkMode: ? //checktype
+	}
+}
+
+func isDir(file string) (bool, *os.FileInfo) {
+	info, err := os.Stat(file)
+	if err != nil {
+		if err.(*os.PathError).Err != syscall.ENOENT {
+			log.Fatalf("%s failed to access %s", err, file)
+		}
+		return false, nil
+	}
+	return info.Mode().IsDir(), &info
+}
+
+func cp(n int, file []string, dir string, options *Options) {
+	if n <= 0 {
+		log.Fatalln("missing file operand")
+	}
+
+	if noDir {
+
+	}
+}
+
+func main() {
+}
