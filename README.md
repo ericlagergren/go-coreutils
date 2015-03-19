@@ -17,7 +17,7 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 | wc      | 100%           | Yes (Unix/Windows)  | No           |
 | uname   | 100%           | No                  | Gofmt        |
 | cat     | 99%            | No (In future, yes) | Idiomatic    |
-| chown   | 90% (-R has infinite recursion issues) | Yes (-R)   |
+| chown   | 90% (-R has infinite recursion issues)| No | Yes (-R)   |
 | whoami  | 100%           | Yes                 | No           |
 | tty     | 100%           | Yes (Unix)          | Gofmt        |
 | xxd     | 100%           | Yes (Unix/Windows)  | No           |
