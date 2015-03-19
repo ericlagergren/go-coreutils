@@ -437,7 +437,7 @@ func findNumberWidth(n int, f []*fstatus) int {
 	return width
 }
 
-func min(a, b int64) int64 {
+func min(a, b uint64) uint64 {
 	if a > b {
 		return b
 	}
@@ -456,7 +456,7 @@ func isReasonable(name string) (bool, int64) {
 	}
 
 	if info.Mode().IsRegular() &&
-		info.Size() <= min(10*1024*1024, sysinfo.PhysmemAvail()/2) {
+		uint64(info.Size()) <= min(10*1024*1024, sysinfo.PhysmemAvail()/2) {
 		return true, info.Size()
 	}
 

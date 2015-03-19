@@ -22,25 +22,21 @@
 	By tege@sics.se, Torbjorn Granlund, advised by rms, Richard Stallman
 */
 
-// THIS PROGRAM NEEDS TO BE REFACTORED, LIKE, REAL BAD.
-// IT'S FUNCTIONAL AND EXCESSIVELY UGLY
-// PROBABLY HAS A LOT OF BUGS TOO BUT I DON'T CARE I'VE SPENT WAYYYY
-// TOO LONG WORKING ON IT. I'LL COME BACK TO IT LATER.
-
 package main
 
 import (
 	"bytes"
 	"fmt"
-	flag "github.com/ogier/pflag"
 	"io"
 	"log"
 	"os"
 	"text/tabwriter"
+
+	flag "github.com/ogier/pflag"
 )
 
 const (
-	HELP = `Usage: cat [OPTION]... [FILE]...
+	Help = `Usage: cat [OPTION]... [FILE]...
 Concatenate FILE(s), or standard input, to standard output.
 
   -A, --show-all           equivalent to -vET
@@ -53,7 +49,7 @@ Concatenate FILE(s), or standard input, to standard output.
   -T, --show-tabs          display TAB characters as ^I
   -u                       (ignored)
   -v, --show-nonprinting   use ^ and M- notation, except for LFD and TAB
-      --help     display this help and exit
+      --Help     display this Help and exit
       --version  output version information and exit
 
 With no FILE, or when FILE is -, read standard input.
@@ -64,7 +60,7 @@ Examples:
 Report wc bugs to ericscottlagergren@gmail.com
 Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
 `
-	VERSION = `Go cat (Go coreutils) 1.0
+	Version = `Go cat (Go coreutils) 1.0
 Copyright (C) 2014 Eric Lagergren
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
@@ -73,7 +69,8 @@ There is NO WARRANTY, to the extent permitted by law.
 Written by Eric Lagergren <ericscottlagergren@gmail.com>
 Inspired by Torbjörn Granlund and Richard M. Stallman.
 `
-	CARET = '^'
+	Caret   = '^'
+	NewLine = 10 // \n
 )
 
 var (
@@ -81,9 +78,8 @@ var (
 	err    error
 	nlctr  int
 
-	BUFFER     = make([]byte, 64*1024)
-	OUT_BUFFER = make([]byte, 64*2048)
-	NEW_LINE   = byte('\n')
+	Buffer    = make([]byte, 64*1024)
+	OutBuffer = make([]byte, 64*2048)
 
 	all          = flag.BoolP("show-all", "A", false, "equivalent to -vET\n")
 	nonBlank     = flag.BoolP("number-nonblank", "b", false, "number nonempty output lines, overrides -n\n")
@@ -103,7 +99,7 @@ var (
 func FormatOutput(line []byte, i uint64) {
 
 	// Check if line is a newline, and if so increment our counter
-	if len(line) != 0 && len(line) > 2 && line[0] == NEW_LINE {
+	if len(line) != 0 && len(line) > 2 && line[0] == NewLine {
 		nlctr++
 	} else {
 		// If not, reset it
@@ -116,35 +112,35 @@ func FormatOutput(line []byte, i uint64) {
 		// Print line number for non-blank lines
 	} else if *nonBlank && *showEnds || *nPEnds {
 		// Any char other than \n on a line with ONE char
-		if len(line) == 1 && line[0] != NEW_LINE {
+		if len(line) == 1 && line[0] != NewLine {
 			fmt.Printf("   %d %s$\n", i, line)
 			// Anything other than \n on the first space on
 			// the line
-		} else if line[0] != NEW_LINE {
+		} else if line[0] != NewLine {
 			fmt.Printf("   %d  %s$\n", i, line[:len(line)-1])
 			// Just print the blank line
 		} else {
 			fmt.Printf("%s$\n", line[:len(line)-1])
 		}
 	} else if *nonBlank {
-		if len(line) == 1 && line[0] != NEW_LINE {
+		if len(line) == 1 && line[0] != NewLine {
 			fmt.Printf("   %d %s\n", i, line)
-		} else if line[0] != NEW_LINE {
+		} else if line[0] != NewLine {
 			fmt.Printf("   %d  %s\n", i, line[:len(line)-1])
 		} else {
 			fmt.Printf("%s\n", line[:len(line)-1])
 		}
 		// For numbered lines
 	} else if *number {
-		if len(line) == 1 && line[0] != NEW_LINE {
+		if len(line) == 1 && line[0] != NewLine {
 			fmt.Printf("   %d %s\n", i, line)
 		} else {
 			fmt.Printf("   %d  %s\n", i, line[:len(line)-1])
 		}
 	} else if *showEnds || *all {
-		if len(line) == 1 && line[0] == NEW_LINE {
+		if len(line) == 1 && line[0] == NewLine {
 			fmt.Println("$")
-		} else if len(line) == 1 && line[0] != NEW_LINE {
+		} else if len(line) == 1 && line[0] != NewLine {
 			fmt.Printf("%s$\n", line)
 		} else {
 			fmt.Printf("%s$\n", line[:len(line)-1])
@@ -196,11 +192,11 @@ func Cat(fname string, stdin bool) {
 		// 2147483647 lines unlikely, but why not be safe?
 		i := uint64(0)
 		for {
-			inBuffer, err := inFile.Read(BUFFER)
-			buf := bytes.NewBuffer(BUFFER[:inBuffer])
+			inBuffer, err := inFile.Read(Buffer)
+			buf := bytes.NewBuffer(Buffer[:inBuffer])
 
 			for {
-				line, err := buf.ReadBytes(NEW_LINE)
+				line, err := buf.ReadBytes(NewLine)
 
 				// Catch when line is [] (happens at end of files when
 				// our buffer is empty for some reason)
@@ -209,7 +205,7 @@ func Cat(fname string, stdin bool) {
 				}
 
 				if (bothEnds || *number) ||
-					(*nonBlank && len(line) > 1 && line[0] != NEW_LINE) ||
+					(*nonBlank && len(line) > 1 && line[0] != NewLine) ||
 					(i <= 0) {
 					i++
 				}
@@ -228,9 +224,9 @@ func Cat(fname string, stdin bool) {
 	} else {
 		i := uint64(0)
 		for {
-			inBuffer, err := inFile.Read(BUFFER)
-			buf := bytes.NewBuffer(BUFFER[:inBuffer])
-			c := OUT_BUFFER
+			inBuffer, err := inFile.Read(Buffer)
+			buf := bytes.NewBuffer(Buffer[:inBuffer])
+			c := OutBuffer
 
 			for {
 				b, err := buf.ReadByte()
@@ -242,17 +238,17 @@ func Cat(fname string, stdin bool) {
 						if b < 127 {
 							c = append(c, b)
 						} else if b == 127 {
-							c = append(c, CARET, '?')
+							c = append(c, Caret, '?')
 						} else {
 							c = append(c, 'M', '-')
 							if b >= 128+32 {
 								if b < 128+127 {
 									c = append(c, b-128)
 								} else {
-									c = append(c, CARET, '?')
+									c = append(c, Caret, '?')
 								}
 							} else {
-								c = append(c, CARET, b-128+64)
+								c = append(c, Caret, b-128+64)
 							}
 						}
 					} else if b == 9 && !*showTabs {
@@ -265,18 +261,18 @@ func Cat(fname string, stdin bool) {
 						FormatOutput(c, i)
 						c = c[:0]
 					} else {
-						c = append(c, CARET, b+64)
+						c = append(c, Caret, b+64)
 					}
 				} else {
 					if b == 9 && *showTabs {
-						c = append(c, CARET, b+64)
+						c = append(c, Caret, b+64)
 					} else {
 						c = append(c, b)
 					}
 				}
 			}
 			if (bothEnds || *number) ||
-				(*nonBlank && len(c) != 0 && c[0] != NEW_LINE) {
+				(*nonBlank && len(c) != 0 && c[0] != NewLine) {
 				i++
 			}
 
@@ -293,7 +289,7 @@ func Cat(fname string, stdin bool) {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "%s", HELP)
+		fmt.Fprintf(os.Stderr, "%s", Help)
 		os.Exit(0)
 	}
 	flag.Parse()
@@ -301,7 +297,7 @@ func main() {
 	succ := true
 
 	if *version {
-		fmt.Fprintf(tabWriter, "%s\n", VERSION)
+		fmt.Fprintf(tabWriter, "%s\n", Version)
 		tabWriter.Flush()
 		os.Exit(0)
 	}

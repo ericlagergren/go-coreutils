@@ -33,19 +33,20 @@ package main
 import (
 	"bytes"
 	"fmt"
-	tty "github.com/EricLagerg/go-ttyname"
-	utmp "github.com/EricLagerg/go-utmp"
-	flag "github.com/ogier/pflag"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/EricLagerg/go-gnulib/ttyname"
+	"github.com/EricLagerg/go-gnulib/utmp"
+	flag "github.com/ogier/pflag"
 )
 
 const (
-	HELP = `Usage: who [OPTION]... [ FILE | ARG1 ARG2 ]
+	Help = `Usage: who [OPTION]... [ FILE | ARG1 ARG2 ]
 Print information about users who are currently logged in.
 
   -a, --all         same as -b -d --login -p -r -t -T -u
@@ -73,7 +74,7 @@ Print information about users who are currently logged in.
 If FILE is not specified, use /var/run/utmp.  /var/log/wtmp as FILE is common.
 If ARG1 ARG2 given, -m presumed: 'am i' or 'mom likes' are usual.`
 
-	VERSION = `who (Go coreutils) 1.0
+	Version = `who (Go coreutils) 1.0
 Copyright (C) 2014 Free Software Foundation, Inc.
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
@@ -83,29 +84,29 @@ Written by Eric Lagergren`
 )
 
 var (
-	dev = []byte{'/', 'd', 'e', 'v', '/'}
+	dev = []byte("/dev/")
 	bt  int32
 )
 
 var (
-	all       = flag.BoolP("all", "a", false, "-bd --login -prtTu")
-	boot      = flag.BoolP("boot", "b", false, "time of last system boot")
-	dead      = flag.BoolP("dead", "d", false, "print dead processes")
-	heading   = flag.BoolP("heading", "H", false, "print line of column headings")
-	ips       = flag.Bool("ips", false, "print ips instead of hostnames")
-	login     = flag.BoolP("login", "l", false, "print system login processes")
-	cur       = flag.Bool("m", false, "only hostname and user associated with stdin")
-	proc      = flag.BoolP("process", "p", false, "print all active processes")
-	count     = flag.BoolP("count", "q", false, "all login names and number of users logged in")
-	rlvl      = flag.BoolP("runlevel", "r", false, "print current runlevel")
-	short     = flag.BoolP("short", "s", false, "print only name, line, and time")
-	clock     = flag.BoolP("time", "t", false, "print last system clock change")
-	users     = flag.BoolP("users", "u", false, "list users logged in")
-	mesg      = flag.BoolP("mesg", "T", false, "add uder's message status as +, -, or ?")
-	mesgTwo   = flag.BoolP("message", "w", false, "same as mesg")
-	mesgThree = flag.Bool("writable", false, "same as -T")
-	doLookup  = flag.Bool("lookup", false, "attempt to canonicalize hostnames via DNS")
-	version   = flag.Bool("version", false, "print version")
+	all       = flag.BoolP("all", "a", false, "")
+	boot      = flag.BoolP("boot", "b", false, "")
+	dead      = flag.BoolP("dead", "d", false, "")
+	heading   = flag.BoolP("heading", "H", false, "")
+	ips       = flag.Bool("ips", false, "")
+	login     = flag.BoolP("login", "l", false, "")
+	cur       = flag.Bool("m", false, "")
+	proc      = flag.BoolP("process", "p", false, "")
+	count     = flag.BoolP("count", "q", false, "")
+	rlvl      = flag.BoolP("runlevel", "r", false, "")
+	short     = flag.BoolP("short", "s", false, "")
+	clock     = flag.BoolP("time", "t", false, "")
+	users     = flag.BoolP("users", "u", false, "")
+	mesg      = flag.BoolP("mesg", "T", false, "")
+	mesgTwo   = flag.BoolP("message", "w", false, "")
+	mesgThree = flag.Bool("writable", false, "")
+	doLookup  = flag.Bool("lookup", false, "")
+	version   = flag.Bool("version", false, "")
 )
 
 func timeOfDay() int64 {
@@ -132,7 +133,7 @@ func idleString(when, bt int64) string {
 }
 
 func timeString(u *utmp.Utmp) string {
-	return time.Unix(int64(u.Time.Sec), int64(u.Time.Usec/1000)).Format("2006/01/02 03:04")
+	return time.Unix(u.Time.Sec, u.Time.Usec/1000).Format("2006/01/02 03:04")
 }
 
 func who(fname string, opts int) {
@@ -162,7 +163,7 @@ func scanEntries(n uint64, u *utmp.UtmpBuffer) {
 		stat := syscall.Stat_t{}
 		_ = syscall.Fstat(int(si), &stat)
 
-		name, err := tty.TtyName(stat, tty.DEV)
+		name, err := ttyname.TtyName(stat, ttyname.dev)
 		if err != nil {
 			return
 		}
@@ -225,7 +226,7 @@ func printUsers(u *utmp.Utmp, bt int32) {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "%s", HELP)
+		fmt.Fprintf(os.Stderr, "%s", Help)
 		os.Exit(0)
 	}
 	flag.Parse()

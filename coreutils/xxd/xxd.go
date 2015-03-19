@@ -224,8 +224,8 @@ func fromHexChar(c byte) (byte, bool) {
 }
 
 // check if entire line is full of empty []byte{0} bytes (nul in C)
-func empty(b *[]byte) bool {
-	for _, v := range *b {
+func empty(b []byte) bool {
+	for _, v := range b {
 		if v != 0 {
 			return false
 		}
@@ -533,7 +533,7 @@ func xxd(r io.Reader, w io.Writer, fname string) error {
 	}
 
 	// These are bumped down from the beginning of the function in order to
-	// allow for their sizes to be allocated based on the user's speficiations
+	// allow their sizes to be allocated based on the user's speficiations
 	var (
 		line = make([]byte, cols)
 		char = make([]byte, octs)
@@ -579,7 +579,7 @@ func xxd(r io.Reader, w io.Writer, fname string) error {
 			totalOcts += *length
 		}
 
-		if *autoskip && empty(&line) {
+		if *autoskip && empty(line) {
 			if nulLine == 1 {
 				w.Write(asterisk)
 				w.Write(newLine)
@@ -588,7 +588,7 @@ func xxd(r io.Reader, w io.Writer, fname string) error {
 			nulLine++
 
 			if nulLine > 1 {
-				lineOffset++ // continue to increment our offset
+				lineOffset += int64(n) // continue to increment our offset
 				continue
 			}
 		}
@@ -596,10 +596,10 @@ func xxd(r io.Reader, w io.Writer, fname string) error {
 		if dumpType <= dumpBinary { // either hex or binary
 			// Line offset
 			hexOffset = strconv.AppendInt(hexOffset[0:0], lineOffset, 16)
-			w.Write(zeroHeader[0:(6 - len(hexOffset))])
+			w.Write(zeroHeader[0:(7 - len(hexOffset))])
 			w.Write(hexOffset)
-			w.Write(zeroHeader[6:])
-			lineOffset++
+			w.Write(zeroHeader[7:])
+			lineOffset += int64(n)
 		} else if doCHeader {
 			w.Write(varDeclChar)
 			w.Write(newLine)
@@ -613,7 +613,7 @@ func xxd(r io.Reader, w io.Writer, fname string) error {
 				w.Write(char)
 				c++
 
-				if k == octs*groupSize {
+				if k == octs*groupSize || i == cols-1 {
 					k = 0
 					w.Write(space)
 				}
@@ -623,6 +623,7 @@ func xxd(r io.Reader, w io.Writer, fname string) error {
 			if !doCEnd {
 				w.Write(doubleSpace)
 			}
+
 			for i := 0; i < n; i++ {
 				cfmtEncode(char, line[i:i+1], caps)
 				w.Write(char)
@@ -642,7 +643,7 @@ func xxd(r io.Reader, w io.Writer, fname string) error {
 				w.Write(char)
 				c++
 
-				if k == octs*groupSize {
+				if k == octs*groupSize || i == cols-1 {
 					k = 0 // reset counter
 					w.Write(space)
 				}
@@ -656,13 +657,14 @@ func xxd(r io.Reader, w io.Writer, fname string) error {
 			return nil
 		}
 
-		if n < len(line) && dumpType <= dumpBinary {
-			for i := n * octs; i < len(line)*octs; i++ {
-				w.Write(space)
+		// If we didn't read a full line, determine our position
+		// and fill the rest of the line with spaces.
+		if n < cols && dumpType <= dumpBinary {
 
-				if i%octs == 1 {
-					w.Write(space)
-				}
+			lineLen := cols*octs + ((cols * octs) / (octs * groupSize))
+			pos := n*octs + ((n * octs) / (octs * groupSize))
+			for i := pos; i < lineLen; i++ {
+				w.Write(space)
 			}
 		}
 
@@ -732,7 +734,7 @@ func main() {
 	}
 
 	if flag.NArg() > 2 {
-		log.Fatalf("too many arguments after %s\n", flag.Args()[1])
+		log.Fatalf("too many arguments after %s\n", flag.Arg(1))
 	}
 
 	var (
@@ -741,7 +743,7 @@ func main() {
 	)
 
 	if flag.NArg() >= 1 {
-		file = flag.Args()[0]
+		file = flag.Arg(0)
 	} else {
 		file = "-"
 	}
@@ -769,7 +771,7 @@ func main() {
 
 	var outFile *os.File
 	if flag.NArg() == 2 {
-		outFile, err = os.Open(flag.Args()[1])
+		outFile, err = os.OpenFile(flag.Arg(1), os.O_RDWR|os.O_CREATE, 0660)
 		if err != nil {
 			log.Fatalln(err)
 		}
