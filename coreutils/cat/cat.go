@@ -1,37 +1,14 @@
-/*
-	Go wc - print the lines, words, bytes, and characters in files
-	Copyright (C) 2014 Eric Lagergren
-
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
-	Written by Eric Lagergren <ericscottlagergren@gmail.com>
-	Inspired by GNU's wc, which was written by
-	By tege@sics.se, Torbjorn Granlund, advised by rms, Richard Stallman
-*/
-
 package main
 
 import (
-	"bytes"
+	"bufio"
 	"fmt"
 	"io"
 	"log"
 	"os"
-	"text/tabwriter"
+	"syscall"
 
+	"github.com/EricLagerg/go-gnulib/posix"
 	flag "github.com/ogier/pflag"
 )
 
@@ -60,267 +37,327 @@ Examples:
 Report wc bugs to ericscottlagergren@gmail.com
 Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
 `
-	Version = `Go cat (Go coreutils) 1.0
+	Version = `Go cat (Go coreutils) 2.0
 Copyright (C) 2014 Eric Lagergren
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
 
 Written by Eric Lagergren <ericscottlagergren@gmail.com>
-Inspired by Torbjörn Granlund and Richard M. Stallman.
 `
-	Caret   = '^'
-	NewLine = 10 // \n
 )
 
 var (
-	inFile *os.File
-	err    error
-	nlctr  int
+	all        = flag.BoolP("show-all", "A", false, "")
+	blank      = flag.BoolP("number-nonblank", "b", false, "")
+	npEnds     = flag.BoolP("ends", "e", false, "")
+	ends       = flag.BoolP("show-ends", "E", false, "")
+	number     = flag.BoolP("number", "n", false, "")
+	squeeze    = flag.BoolP("squeeze-blank", "s", false, "")
+	npTabs     = flag.BoolP("tabs", "t", false, "")
+	tabs       = flag.BoolP("show-tabs", "T", false, "")
+	nonPrint   = flag.BoolP("non-printing", "v", false, "")
+	unbuffered = flag.BoolP("unbuffered", "u", false, "")
+	version    = flag.Bool("version", false, "")
 
-	Buffer    = make([]byte, 64*1024)
-	OutBuffer = make([]byte, 64*2048)
+	totalNewline    int64
+	showNonPrinting bool
 
-	all          = flag.BoolP("show-all", "A", false, "equivalent to -vET\n")
-	nonBlank     = flag.BoolP("number-nonblank", "b", false, "number nonempty output lines, overrides -n\n")
-	nPEnds       = flag.BoolP("nonprinting-ends", "e", false, "equivalent to -vE\n")
-	showEnds     = flag.BoolP("show-ends", "E", false, "display $ at end of each line\n")
-	number       = flag.BoolP("number", "n", false, "number all output lines\n")
-	squeezeBlank = flag.BoolP("squeeze-blank", "s", false, "suppress repeated empty output lines\n")
-	nPTabs       = flag.BoolP("nonprinting-tabs", "t", false, "equivalent to -vT\n")
-	showTabs     = flag.BoolP("show-tabs", "T", false, "display TAB characters as ^I\n")
-	ign          = flag.BoolP("unbuffered", "u", false, "(ignored)\n")
-	nP           = flag.BoolP("show-nonprinting", "v", false, "use ^ and M- notation, except for LDF and TAB\ns")
-
-	version   = flag.Bool("version", false, "print version and exit")
-	tabWriter = tabwriter.NewWriter(os.Stdout, 3, 0, 2, ' ', tabwriter.AlignRight)
+	//fatal = log.New(os.Stderr, "", 0)
+	fatal = log.New(os.Stderr, "", log.Lshortfile)
 )
 
-func FormatOutput(line []byte, i uint64) {
+var (
+	Null      = []byte("^@")
+	Eot       = []byte("^D")
+	Bell      = []byte("^G")
+	Backspace = []byte("^H")
+	HorizTab  = []byte("^I")
+	VertTab   = []byte("^K")
+	FormFeed  = []byte("^L")
+	Return    = []byte("^M")
+	Escape    = []byte("^[")
+	Delete    = []byte("^?")
 
-	// Check if line is a newline, and if so increment our counter
-	if len(line) != 0 && len(line) > 2 && line[0] == NewLine {
-		nlctr++
-	} else {
-		// If not, reset it
-		nlctr = 0
+	LineTerm = []byte("$")
+
+	LineLen = 20
+	LineBuf = []byte{
+		' ', ' ', ' ', ' ', ' ',
+		' ', ' ', ' ', ' ', ' ',
+		' ', ' ', ' ', ' ', ' ',
+		' ', ' ', ' ', '0', '\t',
+	}
+	LinePrint = LineLen - 7
+	LineStart = LineLen - 2
+	LineEnd   = LineLen - 2
+)
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func nextLineNum() {
+	ep := LineEnd
+	for {
+		// if it's possible, increment the line number
+		if LineBuf[ep] < '9' {
+			LineBuf[ep] += 1
+			return
+		}
+
+		// otherwise, set it to 0 and move backwards
+		LineBuf[ep] = '0'
+		ep--
+
+		// stop when we've moved past our printing area
+		if ep < LineStart {
+			break
+		}
 	}
 
-	// If we've seen a new line and -s is set, skip the next line
-	if nlctr > 1 && *squeezeBlank {
-		return
-		// Print line number for non-blank lines
-	} else if *nonBlank && *showEnds || *nPEnds {
-		// Any char other than \n on a line with ONE char
-		if len(line) == 1 && line[0] != NewLine {
-			fmt.Printf("   %d %s$\n", i, line)
-			// Anything other than \n on the first space on
-			// the line
-		} else if line[0] != NewLine {
-			fmt.Printf("   %d  %s$\n", i, line[:len(line)-1])
-			// Just print the blank line
-		} else {
-			fmt.Printf("%s$\n", line[:len(line)-1])
-		}
-	} else if *nonBlank {
-		if len(line) == 1 && line[0] != NewLine {
-			fmt.Printf("   %d %s\n", i, line)
-		} else if line[0] != NewLine {
-			fmt.Printf("   %d  %s\n", i, line[:len(line)-1])
-		} else {
-			fmt.Printf("%s\n", line[:len(line)-1])
-		}
-		// For numbered lines
-	} else if *number {
-		if len(line) == 1 && line[0] != NewLine {
-			fmt.Printf("   %d %s\n", i, line)
-		} else {
-			fmt.Printf("   %d  %s\n", i, line[:len(line)-1])
-		}
-	} else if *showEnds || *all {
-		if len(line) == 1 && line[0] == NewLine {
-			fmt.Println("$")
-		} else if len(line) == 1 && line[0] != NewLine {
-			fmt.Printf("%s$\n", line)
-		} else {
-			fmt.Printf("%s$\n", line[:len(line)-1])
-		}
+	// who needs pointer arithmetic? ...said nobody ever
+	if LineStart < len(LineBuf) {
+		LineStart--
+		LineBuf[LineStart] = '1'
 	} else {
-		fmt.Printf("%s", line)
+		LineBuf[0] = '>'
+	}
+
+	if LineStart < LinePrint {
+		LinePrint--
 	}
 }
 
-func Cat(fname string, stdin bool) {
-	if stdin {
-		inFile = os.Stdin
-	} else if fname == "-" {
-		inFile = os.Stdin
-	} else {
-		inFile, err = os.Open(fname)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer inFile.Close()
+// simple cat, meaning no formatting
+func simpleCat(r io.Reader, w io.Writer) int {
+	_, err := io.Copy(w, r)
+	if err != nil {
+		fatal.Fatalln(err)
 	}
+	return 0 // success!
+}
 
-	bothEnds := *nonBlank && *showEnds || *number && *showEnds
-	anyNp := *nPEnds || *nPTabs || *nP
+func cat(r io.Reader, buf []byte, w *bufio.Writer) int {
+	newlines := totalNewline
+	ok := 0
+	eob := 0
+	bpin := eob + 1
 
-	if *all {
-		*nP = true
-		*showTabs = true
-		*showEnds = true
-	}
-
-	// Simple cat -- copy input to output with no formatting
-	if !(*number || *showEnds || *showTabs || *nP || *squeezeBlank || *all || *nonBlank || *nPTabs || *nPEnds) {
-		for {
-			_, err = io.Copy(os.Stdout, inFile)
-
-			if err == nil {
-				break
-			}
-		}
-		// For line numbers, line ends, or -s but nothing that changes the
-		// content of the strings (e.g. -T, -v)
-		//
-		// This saves some overhead if we're printing the line as-is, except
-		// with line numbers and/or line endings ($)
-	} else if !(anyNp || *showTabs) && (bothEnds || *showEnds || *number || *nonBlank || *squeezeBlank) {
-
-		// uint64 instead if int in case we have a file that exceeds
-		// 2147483647 lines unlikely, but why not be safe?
-		i := uint64(0)
-		for {
-			inBuffer, err := inFile.Read(Buffer)
-			buf := bytes.NewBuffer(Buffer[:inBuffer])
-
-			for {
-				line, err := buf.ReadBytes(NewLine)
-
-				// Catch when line is [] (happens at end of files when
-				// our buffer is empty for some reason)
-				if len(line) == 0 {
-					break
+	var ch byte
+	for {
+		for /* do {} while(ch != '\n') */ {
+			if bpin > eob {
+				n, err := r.Read(buf[:len(buf)-1])
+				if err != nil && err != io.EOF {
+					totalNewline = newlines
+					w.Flush()
+					return 1
 				}
-
-				if (bothEnds || *number) ||
-					(*nonBlank && len(line) > 1 && line[0] != NewLine) ||
-					(i <= 0) {
-					i++
-				}
-
-				FormatOutput(line, i)
-
 				if err == io.EOF {
-					break
+					totalNewline = newlines
+					w.Flush()
+					return 0
 				}
-			}
-
-			if err != nil {
-				break
-			}
-		}
-	} else {
-		i := uint64(0)
-		for {
-			inBuffer, err := inFile.Read(Buffer)
-			buf := bytes.NewBuffer(Buffer[:inBuffer])
-			c := OutBuffer
-
-			for {
-				b, err := buf.ReadByte()
-				if err == io.EOF {
-					break
-				}
-				if anyNp || *all {
-					if b >= 32 {
-						if b < 127 {
-							c = append(c, b)
-						} else if b == 127 {
-							c = append(c, Caret, '?')
-						} else {
-							c = append(c, 'M', '-')
-							if b >= 128+32 {
-								if b < 128+127 {
-									c = append(c, b-128)
-								} else {
-									c = append(c, Caret, '?')
-								}
-							} else {
-								c = append(c, Caret, b-128+64)
-							}
+				eob = n
+				buf[eob] = 10
+			} else {
+				newlines++
+				if newlines > 0 {
+					if newlines >= 2 {
+						newlines = 2
+						if *squeeze {
+							ch = buf[bpin]
+							bpin++
+							continue
 						}
-					} else if b == 9 && !*showTabs {
-						c = append(c, 9)
-					} else if b == 10 {
-						if *number || bothEnds {
-							i++
-						}
-						c = append(c, b)
-						FormatOutput(c, i)
-						c = c[:0]
-					} else {
-						c = append(c, Caret, b+64)
 					}
+					if *number && !*blank {
+						nextLineNum()
+						w.Write(LineBuf[LinePrint:])
+					}
+				}
+				if *ends {
+					w.Write(LineTerm)
+				}
+
+				w.WriteByte(10)
+			}
+			ch = buf[bpin]
+			bpin++
+
+			if ch != 10 {
+				break
+			}
+		}
+
+		if newlines >= 0 && *number {
+			nextLineNum()
+			w.Write(LineBuf[LinePrint:])
+		}
+
+		if showNonPrinting {
+			// Theoretically this could be if/else statements
+			// instead of a switch. Performance will be tested
+			// in an upcoming version.
+		Outer:
+			for {
+				switch ch {
+				// catch '\n' early
+				case 10:
+					newlines = -1
+					break Outer
+				case 0:
+					w.Write(Null)
+				case 4:
+					w.Write(Eot)
+				case 7:
+					w.Write(Bell)
+				case 8:
+					w.Write(Backspace)
+				case 9:
+					if *tabs {
+						w.Write(HorizTab)
+					} else {
+						w.WriteByte(ch)
+					}
+				case 11:
+					w.Write(VertTab)
+				case 12:
+					w.Write(FormFeed)
+				case 13:
+					w.Write(Return)
+				case 27:
+					w.Write(Escape)
+				case 127:
+					w.Write(Delete)
+				default:
+					w.WriteByte(ch)
+				}
+				ch = buf[bpin]
+				bpin++
+			}
+		} else {
+			for {
+				if ch == 9 && *tabs {
+					w.Write(HorizTab)
+				} else if ch != 10 {
+					w.WriteByte(ch)
 				} else {
-					if b == 9 && *showTabs {
-						c = append(c, Caret, b+64)
-					} else {
-						c = append(c, b)
-					}
+					newlines = -1
+					break
 				}
+				ch = buf[bpin]
+				bpin++
 			}
-			if (bothEnds || *number) ||
-				(*nonBlank && len(c) != 0 && c[0] != NewLine) {
-				i++
-			}
-
-			FormatOutput(c, i)
-
-			if err == io.EOF {
-				break
-			}
-
 		}
 	}
 
+	w.Flush()
+	return ok
 }
 
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "%s", Help)
-		os.Exit(0)
-	}
-	flag.Parse()
-	args := flag.Args()
-	succ := true
-
-	if *version {
-		fmt.Fprintf(tabWriter, "%s\n", Version)
-		tabWriter.Flush()
-		os.Exit(0)
-	}
-
-	if len(args) > 0 && args[0] != "-" {
-		for _, f := range args {
-			fi, err := os.Stat(f)
-			if err != nil {
-				fmt.Println(err)
-				succ = false
-				continue
-			}
-			if fi.IsDir() {
-				log.Printf("cat: %s: Is a directory\n", f)
-				succ = false
-			} else {
-				Cat(f, false)
-			}
-		}
-	} else {
-		Cat("-", true)
-	}
-	if !succ {
 		os.Exit(1)
 	}
+	flag.Parse()
+
+	if *version {
+		fmt.Fprintf(os.Stdout, "%s", Version)
+		os.Exit(0)
+	}
+
+	var (
+		ok     int  // return status
+		simple bool // no non-printing
+	)
+
+	// -vET
+	if *all {
+		*nonPrint = true
+		*npTabs = true
+		*npEnds = true
+	}
+	if *blank {
+		*number = true
+	}
+	if *npTabs {
+		*tabs = true
+	}
+	if *all || *npEnds || *npTabs || *nonPrint {
+		showNonPrinting = true
+	}
+
+	outStat, err := os.Stdout.Stat()
+	if err != nil {
+		fatal.Fatalln(err)
+	}
+	outReg := outStat.Mode().IsRegular()
+	outBsize := int(outStat.Sys().(*syscall.Stat_t).Size)
+
+	// catch (./cat) < /etc/group
+	var args []string
+	if flag.NArg() == 0 {
+		args = []string{"-"}
+	} else {
+		args = flag.Args()
+	}
+
+	// the main loop
+	var file *os.File
+	for _, arg := range args {
+
+		if arg == "-" {
+			file = os.Stdin
+		} else {
+			file, err = os.Open(arg)
+			if err != nil {
+				fatal.Fatalln(err)
+			}
+		}
+
+		inStat, err := file.Stat()
+		if err != nil {
+			fatal.Fatalln(err)
+		}
+		if inStat.IsDir() {
+			fatal.Printf("%s: Is a directory\n", file.Name())
+		}
+		inBsize := int(inStat.Sys().(*syscall.Stat_t).Blksize)
+
+		// prfetch! prefetch! prefetch!
+		posix.Fadvise(file, 0, 0, posix.POSIX_FADV_SEQUENTIAL)
+
+		// Make sure we're not catting a file to itself,
+		// provided it's a regular file. Catting a non-reg
+		// file to itself is cool.
+		// e.g. cat file > file
+		if outReg && os.SameFile(outStat, inStat) {
+			if n, _ := file.Seek(0, os.SEEK_CUR); n < inStat.Size() {
+
+				fatal.Fatalf("%s: input file is output file\n", file.Name())
+			}
+		}
+
+		if simple {
+			size := max(inBsize, outBsize)
+			outBuf := bufio.NewWriterSize(os.Stdout, size)
+			ok ^= simpleCat(file, outBuf)
+			outBuf.Flush()
+		} else {
+			size := 20 + inBsize*4
+			outBuf := bufio.NewWriterSize(os.Stdout, size)
+			inBuf := make([]byte, inBsize+1)
+			ok ^= cat(file, inBuf, outBuf)
+		}
+
+		file.Close()
+	}
+
+	os.Exit(ok)
 }
