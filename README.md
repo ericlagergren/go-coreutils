@@ -26,9 +26,9 @@ For example, wc.go counts chars in 550MB file in < 15sec, wc.c in ~11sec on (Int
 
 It's licensed under the GPLv3 because it's mostly a transliteraiton of GNU's coreutils, which are licensed under the GPL.
 
-**REQUIRES "github.com/ogier/pflag" and "github.com/EricLagerg/go-gnulib" **
-You can get `pflag` through `go get github.com/ogier/pflag`
-You can get `pflag` through `go get github.com/EricLager/go-gnulib/*`
+**REQUIRES "github.com/ogier/pflag" and "github.com/EricLagerg/go-gnulib"**
+- You can get `pflag` through `go get github.com/ogier/pflag`
+- You can get `pflag` through `go get github.com/EricLager/go-gnulib/<lib>`
 
 ### LICENSE:
 
