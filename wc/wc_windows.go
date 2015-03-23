@@ -104,7 +104,7 @@ var (
 	printOne    bool
 
 	// for getFileStatus
-	noStat = errors.New("no stat")
+	errNoStat = errors.New("no stat")
 
 	// Our cli args
 	printLines      = flag.BoolP("lines", "l", false, "")
@@ -387,7 +387,7 @@ func getFileStatus(n int, names []string) []*fstatus {
 	f := make([]*fstatus, nf)
 
 	if n == 0 || (n == 1 && printOne) {
-		f[0] = &fstatus{noStat, nil}
+		f[0] = &fstatus{errNoStat, nil}
 	} else {
 		for i := 0; i < n; i++ {
 			var (
@@ -409,7 +409,7 @@ func getFileStatus(n int, names []string) []*fstatus {
 func findNumberWidth(n int, f []*fstatus) int {
 	width := 1
 
-	if 0 < n && f[0].failed != noStat {
+	if 0 < n && f[0].failed != errNoStat {
 		minWidth := 1
 		reg := int64(0)
 

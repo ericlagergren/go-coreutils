@@ -1,5 +1,5 @@
 /*
-	Go wc - print the lines, words, bytes, and characters in files
+	Go cat - concatenate files and print on the standard output.
 	Copyright (C) 2014 Eric Lagergren
 
 	This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,6 @@
 
 /*
 	Written by Eric Lagergren <ericscottlagergren@gmail.com>
-	Inspired by GNU's wc, which was written by
 */
 
 package main
@@ -128,7 +127,7 @@ func nextLineNum() {
 	for {
 		// if it's possible, increment the line number
 		if LineBuf[ep] < '9' {
-			LineBuf[ep] += 1
+			LineBuf[ep]++
 			return
 		}
 
@@ -155,82 +154,150 @@ func nextLineNum() {
 	}
 }
 
-// simple cat, meaning no formatting
+// simple cat, meaning no formatting -- just copy from input to stdout
 func simpleCat(r io.Reader, w io.Writer) int {
 	_, err := io.Copy(w, r)
 	if err != nil {
 		fatal.Fatalln(err)
 	}
-	return 0 // success!
+	return 0 // success! :-)
 }
 
 func cat(r io.Reader, buf []byte, w *bufio.Writer) int {
-	newlines := totalNewline
-	ok := 0
-	eob := 0
-	bpin := eob + 1
+	newlines := totalNewline // total newlines across invocations
+	eob := 0                 // end of buffer
+	bpin := eob + 1          // beginning of buffer
+	ch := byte(0)            // char in buffer
 
-	var ch byte
+	// When I first tried translating this from C the algorithm
+	// Torbjorn and rms used sort of confused me, so I'll try to explain
+	// it as best I can.
+	//
+	// Because newlines indicate the end of a line of output, we deal
+	// with that case first. In order to do this, we have a specific
+	// part of our mess of for-loops that will continue to loop until
+	// we run into a character that isn't a newline. When that happens,
+	// we break out and start printing out all the other characters. (Well,
+	// "printing" into our buffered output.)
+	//
+	// While printing, we break the loops if a newline character is found
+	// so we can deal with it.
+
+	// We don't break from this outermost loop until we return.
 	for {
-		for /* do {} while(ch != '\n') */ {
+		// This is Go's version of a do-while loop. At the bottom of the
+		// loop you'll find the condition `if ch != 10 { break }` which
+		// is effectively the same as:
+		// do
+		//     {
+		//			/* code */
+		//     }
+		// while(ch == '\n')
+		for {
+			// Initially we set bpin to 1, so this condition will always
+			// be true our first time through. We do this so we can
+			// immediately read into our buffer.
+			//
+			// Because we always increment bpin, (as you'll see later)
+			// eventually it'll be larger than eob, (which marks the end
+			// of our buffer). If that's the case, read() some more and
+			// continue our loops.
 			if bpin > eob {
-				n, err := r.Read(buf[:len(buf)-1])
-				if err != nil && err != io.EOF {
-					totalNewline = newlines
-					w.Flush()
-					return 1
-				}
+				n, err := r.Read(buf)
 				if err == io.EOF {
 					totalNewline = newlines
 					w.Flush()
 					return 0
 				}
-				eob = n
-				buf[eob] = 10
+				if err != nil {
+					totalNewline = newlines
+					w.Flush()
+					return 1
+				}
+
+				bpin = 0      // Reset bpin to the beginning of the buffer
+				eob = n       // End of buffer is the number of bytes read
+				buf[eob] = 10 // Place a sentinel at the end of the buffer
 			} else {
+
+				// If we don't have to read anything, we check to see if
+				// We've seen more than 1 consecutive newline.
+				// Yes, newlines == 0 means we've seen one newline.
 				newlines++
 				if newlines > 0 {
 					if newlines >= 2 {
 						newlines = 2
+
+						// Multiple blank lines?
 						if *squeeze {
 							ch = buf[bpin]
 							bpin++
+
+							// Skip past all the printing parts of the loop
 							continue
 						}
 					}
+
+					// Line numbers for *empty* lines
 					if *number && !*blank {
 						nextLineNum()
 						w.Write(LineBuf[LinePrint:])
 					}
 				}
+
+				// Add '$' at EOL if requested
 				if *ends {
 					w.Write(LineTerm)
 				}
 
+				// Write the newline because we haven't printed it yet!
 				w.WriteByte(10)
 			}
+
+			// If it's our first time in the loop ch is given a value for
+			// the first time. Afterwards, we increment bpin. We do this
+			// do simulate `ch = *bpin++`, which means `ch = BUFFER[bpin]`
+			// and then increments bpin. (Pointer arithmetic.)
 			ch = buf[bpin]
 			bpin++
 
+			// Here's the while portion of the simulated do-while loop.
+			// Since while(true) is the same thing as if (!false), we
+			// can do the same here -- while(ch == '\n') is the same
+			// as `if ch != 10`. Note: '\n' == 10.
 			if ch != 10 {
 				break
 			}
 		}
 
+		// Beginning of a line with line numbers requested?
 		if newlines >= 0 && *number {
 			nextLineNum()
 			w.Write(LineBuf[LinePrint:])
 		}
 
+		// At this point ch will not be a newline, so we loop over
+		// the entire buffer until we find a newline. If we find a newline,
+		// we break back to the above loops. Generally, bpin will be less
+		// than eob because our buffer is (usually) 4096 bytes, and
+		// newlines (usually) occur more often than once per 4096 bytes.
+
 		if showNonPrinting {
 			// Theoretically this could be if/else statements
 			// instead of a switch. Performance will be tested
-			// in an upcoming version.
+			// in an upcoming version. A jump table could actually
+			// be faster due to how Go optimizes its switches.
+			// Essentially, non-constants are compared like if/else,
+			// groups > 3 are binary divided, and < 3 are compared
+			// linearly. #golang-nuts/IURR4Z2SY7M/R7ORD_yDix4J
 		Outer:
 			for {
 				switch ch {
-				// catch '\n' early
+				// Catch '\n' early
 				case 10:
+					// Set newlines = -1 and then break the Outer loop
+					// We break Outer because it's the only way to escape
+					// both the switch AND the for-loop
 					newlines = -1
 					break Outer
 				case 0:
@@ -260,10 +327,13 @@ func cat(r io.Reader, buf []byte, w *bufio.Writer) int {
 				default:
 					w.WriteByte(ch)
 				}
+				// Much like we did before, all we're doing is incrementing
+				// our pointer (array index) after we give ch a new value.
 				ch = buf[bpin]
 				bpin++
 			}
 		} else {
+			// Not non-printing
 			for {
 				if ch == 9 && *tabs {
 					w.Write(HorizTab)
@@ -273,14 +343,13 @@ func cat(r io.Reader, buf []byte, w *bufio.Writer) int {
 					newlines = -1
 					break
 				}
+
+				// *bpin++
 				ch = buf[bpin]
 				bpin++
 			}
 		}
 	}
-
-	w.Flush()
-	return ok
 }
 
 func main() {
@@ -305,6 +374,9 @@ func main() {
 		*nonPrint = true
 		*npTabs = true
 		*npEnds = true
+	}
+	if *npEnds {
+		*ends = true
 	}
 	if *blank {
 		*number = true
@@ -362,7 +434,6 @@ func main() {
 		// e.g. cat file > file
 		if outReg && os.SameFile(outStat, inStat) {
 			if n, _ := file.Seek(0, os.SEEK_CUR); n < inStat.Size() {
-
 				fatal.Fatalf("%s: input file is output file\n", file.Name())
 			}
 		}

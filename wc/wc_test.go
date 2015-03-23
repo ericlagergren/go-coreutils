@@ -17,12 +17,12 @@ const (
 
 // file outputs with newlines
 const (
-	file1_res = "  196  4500 29847 54000   498 test_files/lang_ru.txt\n"
-	file2_res = " 500 1000 9719 9722   38 test_files/dict_en.txt\n"
-	file3_res = "  9  26 128 128  51 test_files/spaces_en.txt\n"
-	file4_res = "  39  479 2824 2876  730 test_files/coreutils_man_en.txt\n"
+	file1Result = "  196  4500 29847 54000   498 test_files/lang_ru.txt\n"
+	file2Result = " 500 1000 9719 9722   38 test_files/dict_en.txt\n"
+	file3Result = "  9  26 128 128  51 test_files/spaces_en.txt\n"
+	file4Result = "  39  479 2824 2876  730 test_files/coreutils_man_en.txt\n"
 	// stripped off the `./` from file names...
-	file5_res = `    0     1   138   138   133 ./test_files/file_list.txt
+	file5Result = `    0     1   138   138   133 ./test_files/file_list.txt
     9    26   128   128    51 ./test_files/spaces_en.txt
   500  1000  9719  9722    38 ./test_files/dict_en.txt
   196  4500 29847 54000   498 ./test_files/lang_ru.txt
@@ -39,8 +39,8 @@ func TestFile1(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if s != file1_res {
-		fmt.Printf("Expected:\n%s\n\nGot:\n%s", file1_res, s)
+	if s != file1Result {
+		fmt.Printf("Expected:\n%s\n\nGot:\n%s", file1Result, s)
 		t.Error("Test 1 failed")
 	}
 }
@@ -53,8 +53,8 @@ func TestFile2(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if s != file2_res {
-		fmt.Printf("Expected:\n%s\n\nGot:\n%s", file2_res, s)
+	if s != file2Result {
+		fmt.Printf("Expected:\n%s\n\nGot:\n%s", file2Result, s)
 		t.Error("Test 2 failed")
 	}
 }
@@ -67,8 +67,8 @@ func TestFile3(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if s != file3_res {
-		fmt.Printf("Expected:\n%s\n\nGot:\n%s", file3_res, s)
+	if s != file3Result {
+		fmt.Printf("Expected:\n%s\n\nGot:\n%s", file3Result, s)
 		t.Error("Test 3 failed")
 	}
 }
@@ -81,8 +81,8 @@ func TestFile4(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if s != file4_res {
-		fmt.Printf("Expected:\n%s\n\nGot:\n%s", file4_res, s)
+	if s != file4Result {
+		fmt.Printf("Expected:\n%s\n\nGot:\n%s", file4Result, s)
 		t.Error("Test 4 failed")
 	}
 }
@@ -95,8 +95,8 @@ func TestFile5(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if s != file5_res {
-		fmt.Printf("Expected:\n%s\n\nGot:\n%s", file5_res, s)
+	if s != file5Result {
+		fmt.Printf("Expected:\n%s\n\nGot:\n%s", file5Result, s)
 		t.Error("Test 5 failed")
 	}
 }

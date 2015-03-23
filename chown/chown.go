@@ -22,6 +22,8 @@
 	Inspired by GNU's chown-core (Extracted from chown.c/chgrp.c and librarified by Jim Meyering.)
 */
 
+// BUG(eric): -R flag could get stuck in an infinite loop
+
 package main
 
 import (

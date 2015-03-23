@@ -437,7 +437,6 @@ func xxdReverse(r io.Reader, w io.Writer) error {
 			return nil
 		}
 	}
-	return nil
 }
 
 func xxd(r io.Reader, w io.Writer, fname string) error {
@@ -798,11 +797,9 @@ func main() {
 		if err := xxdReverse(inFile, out); err != nil {
 			log.Fatalln(err)
 		}
-		return
 	} else {
 		if err := xxd(inFile, out, file); err != nil {
 			log.Fatalln(err)
 		}
-		return
 	}
 }
