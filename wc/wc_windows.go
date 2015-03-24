@@ -335,11 +335,6 @@ func getFileList(name string, size int64) []string {
 		if buf[i] == NullByte {
 			f := buf[j:i]
 
-			if len(f) > 2 &&
-				f[0] == '.' &&
-				f[1] == '/' {
-				f = f[2:]
-			}
 			j = i + 1
 
 			list[k] = string(f)
@@ -567,13 +562,7 @@ func main() {
 			}
 
 			if len(fname) > 1 {
-				// trim ./ and \0
-				if len(fname) > 2 &&
-					fname[0] == '.' &&
-					fname[1] == '/' {
-					fname = fname[2:]
-				}
-
+				// \0
 				if fname[len(fname)-1] == NullByte {
 					fname = fname[:len(fname)-1]
 				}

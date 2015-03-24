@@ -160,7 +160,7 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 	countComplicated := *printWords || *printLineLength
 
 	if !*printBytes || *printChars || *printLines || countComplicated {
-		posix.Fadvise(file, 0, 0, posix.POSIX_FADV_SEQUENTIAL)
+		posix.Fadvise64(int(file.Fd()), 0, 0, posix.FADVISE_SEQUENTIAL)
 	}
 
 	// If we simply want the bytes we can ignore the overhead (see: GNU
@@ -337,11 +337,6 @@ func getFileList(name string, size int64) []string {
 		if buf[i] == NullByte {
 			f := buf[j:i]
 
-			if len(f) > 2 &&
-				f[0] == '.' &&
-				f[1] == '/' {
-				f = f[2:]
-			}
 			j = i + 1
 
 			list[k] = string(f)
@@ -569,13 +564,7 @@ func main() {
 			}
 
 			if len(fname) > 1 {
-				// trim ./ and \0
-				if len(fname) > 2 &&
-					fname[0] == '.' &&
-					fname[1] == '/' {
-					fname = fname[2:]
-				}
-
+				// \0
 				if fname[len(fname)-1] == NullByte {
 					fname = fname[:len(fname)-1]
 				}

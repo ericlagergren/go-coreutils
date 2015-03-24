@@ -426,7 +426,7 @@ func main() {
 		inBsize := int(inStat.Sys().(*syscall.Stat_t).Blksize)
 
 		// prfetch! prefetch! prefetch!
-		posix.Fadvise(file, 0, 0, posix.POSIX_FADV_SEQUENTIAL)
+		posix.Fadvise64(int(file.Fd()), 0, 0, posix.FADVISE_SEQUENTIAL)
 
 		// Make sure we're not catting a file to itself,
 		// provided it's a regular file. Catting a non-reg
