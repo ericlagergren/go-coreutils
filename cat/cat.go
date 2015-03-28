@@ -89,17 +89,12 @@ var (
 	fatal = log.New(os.Stderr, "", log.Lshortfile)
 )
 
+const Caret = '^'
+
 var (
-	Null      = []byte("^@")
-	Eot       = []byte("^D")
-	Bell      = []byte("^G")
-	Backspace = []byte("^H")
-	HorizTab  = []byte("^I")
-	VertTab   = []byte("^K")
-	FormFeed  = []byte("^L")
-	Return    = []byte("^M")
-	Escape    = []byte("^[")
-	Delete    = []byte("^?")
+	MDash    = []byte("M-")
+	HorizTab = []byte("^I")
+	Delete   = []byte("^?")
 
 	LineTerm = []byte("$")
 
@@ -168,6 +163,7 @@ func cat(r io.Reader, buf []byte, w *bufio.Writer) int {
 	eob := 0                 // end of buffer
 	bpin := eob + 1          // beginning of buffer
 	ch := byte(0)            // char in buffer
+	size := len(buf) - 1     // len of buffer with room for sentinel byte
 
 	// When I first tried translating this from C the algorithm
 	// Torbjorn and rms used sort of confused me, so I'll try to explain
@@ -203,7 +199,7 @@ func cat(r io.Reader, buf []byte, w *bufio.Writer) int {
 			// of our buffer). If that's the case, read() some more and
 			// continue our loops.
 			if bpin > eob {
-				n, err := r.Read(buf)
+				n, err := r.Read(buf[:size])
 				if err == io.EOF {
 					totalNewline = newlines
 					w.Flush()
@@ -290,43 +286,35 @@ func cat(r io.Reader, buf []byte, w *bufio.Writer) int {
 			// Essentially, non-constants are compared like if/else,
 			// groups > 3 are binary divided, and < 3 are compared
 			// linearly. #golang-nuts/IURR4Z2SY7M/R7ORD_yDix4J
-		Outer:
 			for {
-				switch ch {
-				// Catch '\n' early
-				case 10:
-					// Set newlines = -1 and then break the Outer loop
-					// We break Outer because it's the only way to escape
-					// both the switch AND the for-loop
-					newlines = -1
-					break Outer
-				case 0:
-					w.Write(Null)
-				case 4:
-					w.Write(Eot)
-				case 7:
-					w.Write(Bell)
-				case 8:
-					w.Write(Backspace)
-				case 9:
-					if *tabs {
-						w.Write(HorizTab)
-					} else {
+				if ch >= 32 {
+					if ch < 127 {
 						w.WriteByte(ch)
+					} else if ch == 127 {
+						w.Write(Delete)
+					} else {
+						w.Write(MDash)
+						if ch >= 128+32 {
+							if ch < 128+127 {
+								w.WriteByte(ch - 128)
+							} else {
+								w.Write(Delete)
+							}
+						} else {
+							w.WriteByte(Caret)
+							w.WriteByte(ch - 128 + 64)
+						}
 					}
-				case 11:
-					w.Write(VertTab)
-				case 12:
-					w.Write(FormFeed)
-				case 13:
-					w.Write(Return)
-				case 27:
-					w.Write(Escape)
-				case 127:
-					w.Write(Delete)
-				default:
+				} else if ch == 9 && !*tabs {
 					w.WriteByte(ch)
+				} else if ch == 10 {
+					newlines = -1
+					break
+				} else {
+					w.WriteByte(Caret)
+					w.WriteByte(ch + 64)
 				}
+
 				// Much like we did before, all we're doing is incrementing
 				// our pointer (array index) after we give ch a new value.
 				ch = buf[bpin]
