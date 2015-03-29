@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -28,7 +27,6 @@ func TestCAT(t *testing.T) {
 	*npTabs = true
 
 	for i, f := range flist {
-		fmt.Fprintf(os.Stderr, "%d", i)
 
 		// set up our capture of stdout
 		stdout := os.Stdout
@@ -64,6 +62,7 @@ func TestCAT(t *testing.T) {
 		go func() {
 			var b bytes.Buffer
 			_, err := io.Copy(&b, r)
+
 			r.Close()
 			if err != nil {
 				t.Fatal(err)

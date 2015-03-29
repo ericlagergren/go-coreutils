@@ -279,13 +279,6 @@ func cat(r io.Reader, buf []byte, w *bufio.Writer) int {
 		// newlines (usually) occur more often than once per 4096 bytes.
 
 		if showNonPrinting {
-			// Theoretically this could be if/else statements
-			// instead of a switch. Performance will be tested
-			// in an upcoming version. A jump table could actually
-			// be faster due to how Go optimizes its switches.
-			// Essentially, non-constants are compared like if/else,
-			// groups > 3 are binary divided, and < 3 are compared
-			// linearly. #golang-nuts/IURR4Z2SY7M/R7ORD_yDix4J
 			for {
 				if ch >= 32 {
 					if ch < 127 {
@@ -306,7 +299,7 @@ func cat(r io.Reader, buf []byte, w *bufio.Writer) int {
 						}
 					}
 				} else if ch == 9 && !*tabs {
-					w.WriteByte(ch)
+					w.WriteByte(9)
 				} else if ch == 10 {
 					newlines = -1
 					break
@@ -427,12 +420,22 @@ func main() {
 		}
 
 		if simple {
+			// Select larger block size
 			size := max(inBsize, outBsize)
 			outBuf := bufio.NewWriterSize(os.Stdout, size)
 			ok ^= simpleCat(file, outBuf)
+
+			// Flush because we don't have a chance to in
+			// simpleCat() because we use io.Copy()
 			outBuf.Flush()
 		} else {
-			size := 20 + inBsize*4
+			// If you want to know why, exactly, I chose
+			// outBsize -1 + inBsize*4 + 20, read GNU's cat
+			// source code. The tl;dr is the 20 is the counter
+			// buffer, inBsize*4 is from potentially prepending
+			// the control characters (M-^), and outBsize is
+			// due to new tests for newlines.
+			size := outBsize - 1 + inBsize*4 + 20
 			outBuf := bufio.NewWriterSize(os.Stdout, size)
 			inBuf := make([]byte, inBsize+1)
 			ok ^= cat(file, inBuf, outBuf)
