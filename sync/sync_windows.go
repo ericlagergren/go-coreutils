@@ -56,5 +56,8 @@ func main() {
 		fatal.Fatalln(err)
 	}
 
-	syscall.Fsync(file.Fd())
+	err = syscall.Fsync(syscall.Handle(file.Fd()))
+	if err != nil {
+		fatal.Fatalln(err)
+	}
 }
