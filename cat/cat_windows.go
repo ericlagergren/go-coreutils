@@ -85,8 +85,8 @@ var (
 	totalNewline    int64
 	showNonPrinting bool
 
-	//fatal = log.New(os.Stderr, "", 0)
-	fatal = log.New(os.Stderr, "", log.Lshortfile)
+	fatal = log.New(os.Stderr, "", 0)
+	//fatal = log.New(os.Stderr, "", log.Lshortfile)
 )
 
 const Caret = '^'
@@ -405,9 +405,6 @@ func main() {
 			fatal.Printf("%s: Is a directory\n", file.Name())
 		}
 		inBsize := int(inStat.Sys().(*syscall.Stat_t).Blksize)
-
-		// prfetch! prefetch! prefetch!
-		posix.Fadvise64(int(file.Fd()), 0, 0, posix.FADVISE_SEQUENTIAL)
 
 		// Make sure we're not catting a file to itself,
 		// provided it's a regular file. Catting a non-reg
