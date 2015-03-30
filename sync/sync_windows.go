@@ -42,14 +42,19 @@ func main() {
 	}
 	flag.Parse()
 
+	dir, err := os.Getwd()
+	if err != nil {
+		fatal.Fatalln(err)
+	}
+
 	// "To flush all open files on a volume, call FlushFileBuffers with a handle to the volume.
 	// The caller must have administrative privileges. For more information, see Running with Special Privileges."
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa364439(v=vs.85).aspx
-	fp := filepath.VolumeName(os.Getwd())
+	fp := filepath.VolumeName(dir)
 	file, err := os.Open(fp)
 	if err != nil {
 		fatal.Fatalln(err)
 	}
 
-	syscall.Fsync(int(file.Fd()))
+	syscall.Fsync(file.Fd())
 }
