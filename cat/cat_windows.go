@@ -30,7 +30,6 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/EricLagerg/go-gnulib/posix"
 	flag "github.com/ogier/pflag"
 )
 
