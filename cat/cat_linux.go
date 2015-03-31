@@ -374,7 +374,7 @@ func main() {
 		fatal.Fatalln(err)
 	}
 	outReg := outStat.Mode().IsRegular()
-	outBsize := int(outStat.Sys().(*syscall.Stat_t).Size)
+	outBsize := int(outStat.Sys().(*syscall.Stat_t).Blksize)
 
 	// catch (./cat) < /etc/group
 	var args []string

@@ -109,13 +109,6 @@ var (
 	LineEnd   = LineLen - 2
 )
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func nextLineNum() {
 	ep := LineEnd
 	for {
@@ -368,12 +361,12 @@ func main() {
 		showNonPrinting = true
 	}
 
-	outStat, err := os.Stdout.Stat()
+	outHandle := syscall.Handle(os.Stdout.Fd())
+	outType, err := syscall.GetFileType(outHandle)
 	if err != nil {
 		fatal.Fatalln(err)
 	}
-	outReg := outStat.Mode().IsRegular()
-	outBsize := int(outStat.Sys().(*syscall.Stat_t).Size)
+	outBsize := 4096
 
 	// catch (./cat) < /etc/group
 	var args []string
@@ -403,13 +396,31 @@ func main() {
 		if inStat.IsDir() {
 			fatal.Printf("%s: Is a directory\n", file.Name())
 		}
-		inBsize := int(inStat.Sys().(*syscall.Stat_t).Blksize)
+		inHandle := syscall.Handle(file.Fd())
+		inBsize := 4096
+
+		// See http://stackoverflow.com/q/29360969/2967113
+		// for why this differs from the Unix versions
+		var (
+			inPath  = make([]byte, syscall.MAX_PATH)
+			outPath = make([]byte, syscall.MAX_PATH)
+		)
+
+		err = k32.GetFinalPathNameByHandle(inHandle, buf, 0)
+		if err != nil {
+			fatal.Fatalln(err)
+		}
+
+		err = k32.GetFinalPathNameByHandle(outHandle, buf, 0)
+		if err != nil {
+			fatal.Fatalln(err)
+		}
 
 		// Make sure we're not catting a file to itself,
 		// provided it's a regular file. Catting a non-reg
-		// file to itself is cool.
-		// e.g. cat file > file
-		if outReg && os.SameFile(outStat, inStat) {
+		// file to itself is cool, e.g. cat file > file
+		if outType == syscall.FILE_TYPE_CHAR &&
+			string(inPath) == string(outPath) {
 			if n, _ := file.Seek(0, os.SEEK_CUR); n < inStat.Size() {
 				fatal.Fatalf("%s: input file is output file\n", file.Name())
 			}
