@@ -23,3 +23,5 @@ _testmain.go
 
 # etc
 lst
+.c # because I test in C
+.out # same
