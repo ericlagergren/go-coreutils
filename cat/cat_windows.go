@@ -428,7 +428,7 @@ func main() {
 
 		if simple {
 			// Select larger block size
-			size := max(inBsize, outBsize)
+			size := 4096
 			outBuf := bufio.NewWriterSize(os.Stdout, size)
 			ok ^= simpleCat(file, outBuf)
 
