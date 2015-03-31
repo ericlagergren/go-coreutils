@@ -419,7 +419,7 @@ func main() {
 		// Make sure we're not catting a file to itself,
 		// provided it's a regular file. Catting a non-reg
 		// file to itself is cool, e.g. cat file > file
-		if outType == syscall.FILE_TYPE_CHAR &&
+		if outType == syscall.FILE_TYPE_DISK &&
 			string(inPath) == string(outPath) {
 			if n, _ := file.Seek(0, os.SEEK_CUR); n < inStat.Size() {
 				fatal.Fatalf("%s: input file is output file\n", file.Name())
