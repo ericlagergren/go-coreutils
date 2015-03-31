@@ -30,6 +30,7 @@ import (
 	"os"
 	"syscall"
 
+	k32 "github.com/EricLager/windows"
 	flag "github.com/ogier/pflag"
 )
 
@@ -406,12 +407,12 @@ func main() {
 			outPath = make([]byte, syscall.MAX_PATH)
 		)
 
-		err = k32.GetFinalPathNameByHandle(inHandle, buf, 0)
+		err = k32.GetFinalPathNameByHandle(inHandle, inPath, 0)
 		if err != nil {
 			fatal.Fatalln(err)
 		}
 
-		err = k32.GetFinalPathNameByHandle(outHandle, buf, 0)
+		err = k32.GetFinalPathNameByHandle(outHandle, outPath, 0)
 		if err != nil {
 			fatal.Fatalln(err)
 		}
