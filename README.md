@@ -22,8 +22,8 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 |:--------|:---------------|:--------------------|:-------------|
 | wc      | 100%           | Yes (Unix/Windows)  | No           |
 | uname   | 100%           | No                  | Gofmt        |
-| cat     | 100%           | Yes                 | No           |
-| chown   | 90% (-R has infinite recursion issues)| No | Yes (-R)   |
+| cat     | 100%           | Yes (Unix/Windows)  | No           |
+| chown   | 90% (-R has infinite recursion issues) | No | Yes (-R)   |
 | whoami  | 100%           | Yes                 | No           |
 | tty     | 100%           | No                  | Gofmt        |
 | xxd     | 100%           | Yes (Unix/Windows)  | No           |
