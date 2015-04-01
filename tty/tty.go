@@ -17,9 +17,6 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/* Written by Eric Lagergren
-Inspired by David MacKenzie <djm@gnu.ai.mit.edu>.  */
-
 package main
 
 import (
