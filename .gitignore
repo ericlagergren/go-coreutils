@@ -25,3 +25,4 @@ _testmain.go
 lst
 .c # because I test in C
 .out # same
+coreutils/
