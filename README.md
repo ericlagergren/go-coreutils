@@ -1,10 +1,16 @@
 ### Go coreutils
 
-This is a port of GNU's coreutils (http://www.gnu.org/software/coreutils/).
+This is a port of GNU's coreutils (http://www.gnu.org/software/coreutils/)
+that aims to be a drop-in, cross-platform replacement.
 
 **It's currently under development.**
 
-Pull requests are more than welcome.
+Because it imports from `github.com/EricLagerg/go-gnulib`, and I'm constantly
+refactoring, parts could break from day-to-day.
+
+I'd recommend running `go get -u ...` before you file a bug report!
+
+*Pull requests are more than welcome.*
 
 Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 
@@ -31,13 +37,17 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 
 ### Information:
 
-These utilities should be nearly identical to GNU's coreutils, and should have *relatively* the same speed. 
+These utilities should be nearly identical to GNU's coreutils, and should have 
+*relatively* the same speed. 
 
-For example, `wc.go` counts chars in 550MB file in < 15sec, `wc.c` in ~11sec on (Intel core i3 2.66ghz running Debian 3.2.63-2+deb7u1 x86_64).
+For example, `wc.go` counts chars in 550MB file in < 15sec, `wc.c` in ~11sec 
+on (Intel core i3 2.66ghz running Debian 3.2.63-2+deb7u1 x86_64).
 
-`xxd.go` is actually much faster than the native `xxd` implementation found on most *nix machines.
+`xxd.go` is actually much faster than the native `xxd` implementation found 
+on most *nix machines.
 
-It's licensed under the GPLv3 because it's mostly a transliteraiton of GNU's coreutils, which are licensed under the GPL.
+It's licensed under the GPLv3 because it's mostly a transliteraiton of GNU's 
+coreutils, which are licensed under the GPL.
 
 ## REQUIRES:
 

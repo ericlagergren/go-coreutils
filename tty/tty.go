@@ -26,7 +26,7 @@ import (
 	"fmt"
 	"os"
 
-    "github.com/EricLagerg/go-gnulib/ttyname"
+	"github.com/EricLagerg/go-gnulib/ttyname"
 	flag "github.com/ogier/pflag"
 )
 
@@ -74,14 +74,14 @@ func main() {
 	}
 
 	si := os.Stdin.Fd()
-	tty, err := gnulib.TtyName(si)
+	tty, err := ttyname.TtyName(si)
 	if !silent {
-		if err == gnulib.NotTty {
+		if err == ttyname.NotTty {
 			fmt.Println("not a tty")
 			os.Exit(1)
 		}
-		if tty != nil {
-			fmt.Println(*tty)
+		if tty != "" {
+			fmt.Println(tty)
 			return
 		} else {
 			fmt.Println("tty")
