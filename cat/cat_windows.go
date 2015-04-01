@@ -30,7 +30,7 @@ import (
 	"os"
 	"syscall"
 
-	k32 "github.com/EricLager/windows"
+	k32 "github.com/EricLagerg/go-gnulib/windows"
 	flag "github.com/ogier/pflag"
 )
 
@@ -85,8 +85,8 @@ var (
 	totalNewline    int64
 	showNonPrinting bool
 
-	fatal = log.New(os.Stderr, "", 0)
-	//fatal = log.New(os.Stderr, "", log.Lshortfile)
+	// fatal = log.New(os.Stderr, "", 0)
+	fatal = log.New(os.Stderr, "", log.Lshortfile)
 )
 
 const Caret = '^'
@@ -401,36 +401,41 @@ func main() {
 		inBsize := 4096
 
 		// See http://stackoverflow.com/q/29360969/2967113
-		// for why this differs from the Unix versions
-		var (
-			inPath  = make([]byte, syscall.MAX_PATH)
-			outPath = make([]byte, syscall.MAX_PATH)
-		)
-
-		err = k32.GetFinalPathNameByHandle(inHandle, inPath, 0)
-		if err != nil {
-			fatal.Fatalln(err)
-		}
-
-		err = k32.GetFinalPathNameByHandle(outHandle, outPath, 0)
-		if err != nil {
-			fatal.Fatalln(err)
-		}
-
+		// for why this differs from the Unix versions.
+		//
 		// Make sure we're not catting a file to itself,
 		// provided it's a regular file. Catting a non-reg
 		// file to itself is cool, e.g. cat file > file
-		if outType == syscall.FILE_TYPE_DISK &&
-			string(inPath) == string(outPath) {
-			if n, _ := file.Seek(0, os.SEEK_CUR); n < inStat.Size() {
-				fatal.Fatalf("%s: input file is output file\n", file.Name())
+		if outType == syscall.FILE_TYPE_DISK {
+
+			inPath := make([]byte, syscall.MAX_PATH)
+			outPath := make([]byte, syscall.MAX_PATH)
+
+			err = k32.GetFinalPathNameByHandleA(inHandle, inPath, 0)
+			if err != nil {
+				fatal.Fatalln(err)
+			}
+
+			err = k32.GetFinalPathNameByHandleA(outHandle, outPath, 0)
+			if err != nil {
+				fatal.Fatalln(err)
+			}
+
+			if string(inPath) == string(outPath) {
+				k, err := file.Seek(0, os.SEEK_CUR)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Fprintf(os.Stderr, "%d", k)
+				fmt.Fprintf(os.Stderr, "%d", inStat.Size())
+				if n, _ := file.Seek(0, os.SEEK_CUR); n < inStat.Size() {
+					fatal.Fatalf("%s: input file is output file\n", file.Name())
+				}
 			}
 		}
 
 		if simple {
-			// Select larger block size
-			size := 4096
-			outBuf := bufio.NewWriterSize(os.Stdout, size)
+			outBuf := bufio.NewWriterSize(os.Stdout, 4096)
 			ok ^= simpleCat(file, outBuf)
 
 			// Flush because we don't have a chance to in
