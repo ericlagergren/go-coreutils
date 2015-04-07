@@ -325,10 +325,10 @@ func getFileList(name string, size int64) []string {
 		return nil
 	}
 
-	// instead of reallocating space each time we find a new string,
+	// Instead of reallocating space each time we find a new string,
 	// we just scan the entire buffer and allocate space for each string
-	// in one swoop. AFAIK it's why GNUs's wc uses physmem_available() / 2 --
-	// so that it can hold the file twice in memory
+	// in one swoop. AFAIK it's why GNUs's wc uses physmem_available() / 2,
+	// so that it can hold the file twice in memory.
 	n := count(buf, NullByte)
 	list := make([]string, n)
 
