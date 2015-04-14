@@ -30,7 +30,8 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/EricLagerg/go-gnulib/posix"
+	"golang.org/x/sys/unix"
+
 	flag "github.com/ogier/pflag"
 )
 
@@ -407,7 +408,7 @@ func main() {
 		inBsize := int(inStat.Sys().(*syscall.Stat_t).Blksize)
 
 		// prefetch! prefetch! prefetch!
-		posix.Fadvise64(int(file.Fd()), 0, 0, posix.FADVISE_SEQUENTIAL)
+		unix.Fadvise(int(file.Fd()), 0, 0, unix.FADV_SEQUENTIAL)
 
 		// Make sure we're not catting a file to itself,
 		// provided it's a regular file. Catting a non-reg

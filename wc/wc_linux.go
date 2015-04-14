@@ -36,9 +36,10 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/EricLagerg/go-gnulib/posix"
 	"github.com/EricLagerg/go-gnulib/sysinfo"
 	"github.com/EricLagerg/go-gnulib/ttyname"
+	"golang.org/x/sys/unix"
+
 	flag "github.com/ogier/pflag"
 )
 
@@ -160,7 +161,7 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 	countComplicated := *printWords || *printLineLength
 
 	if !*printBytes || *printChars || *printLines || countComplicated {
-		posix.Fadvise64(int(file.Fd()), 0, 0, posix.FADVISE_SEQUENTIAL)
+		unix.Fadvise(int(file.Fd()), 0, 0, unix.FADVISE_SEQUENTIAL)
 	}
 
 	// If we simply want the bytes we can ignore the overhead (see: GNU

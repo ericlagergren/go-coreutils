@@ -17,7 +17,6 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/* Equivalent to 'id -un'. */
 /* Written by Eric Lagergren */
 
 package main
@@ -26,8 +25,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/user"
-	"strconv"
+
+	"github.com/EricLagerg/go-gnulib/login"
 
 	flag "github.com/ogier/pflag"
 )
@@ -73,11 +72,11 @@ func main() {
 		os.Exit(0)
 	}
 
-	uid := strconv.Itoa(os.Geteuid())
-	u, err := user.LookupId(uid)
+	name, err := login.GetLogin()
 	if err != nil {
-		fatal.Fatalf("cannot find name for user ID %d\n", uid)
+		// POSIX prohibits using a fallback
+		fatal.Fatalln("no login name")
 	}
 
-	fmt.Println(u.Username)
+	fmt.Println(name)
 }
