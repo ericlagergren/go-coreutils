@@ -1,7 +1,7 @@
 /*
 	Go tty -- print the name of the terminal connected to standard input
 
-	Copyright (C) 2014 Eric Lagergren
+	Copyright (C) 2015 Eric Lagergren
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
