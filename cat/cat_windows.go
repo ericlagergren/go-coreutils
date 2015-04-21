@@ -85,8 +85,8 @@ var (
 	totalNewline    int64
 	showNonPrinting bool
 
-	// fatal = log.New(os.Stderr, "", 0)
-	fatal = log.New(os.Stderr, "", log.Lshortfile)
+	fatal = log.New(os.Stderr, "", 0)
+	// fatal = log.New(os.Stderr, "", log.Lshortfile)
 )
 
 const Caret = '^'
@@ -422,12 +422,6 @@ func main() {
 			}
 
 			if string(inPath) == string(outPath) {
-				k, err := file.Seek(0, os.SEEK_CUR)
-				if err != nil {
-					panic(err)
-				}
-				fmt.Fprintf(os.Stderr, "%d", k)
-				fmt.Fprintf(os.Stderr, "%d", inStat.Size())
 				if n, _ := file.Seek(0, os.SEEK_CUR); n < inStat.Size() {
 					fatal.Fatalf("%s: input file is output file\n", file.Name())
 				}
