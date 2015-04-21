@@ -1,3 +1,13 @@
+/*
+	xxd -- print hexdumps of files
+
+	Distribute freely and credit me,
+	make money and share with me,
+	lose money and don’t ask me.
+
+	Original version (in C) (c) 1990-1997 by Juergen Weigert
+*/
+
 package main
 
 import (
@@ -35,6 +45,7 @@ Options:
     		       * bits (kb, mb, etc.) will be rounded down to nearest byte.
     -u, --uppercase    use upper case hex letters.
     -v, --version      show version.`
+
 	Version = `xxd v2.0 2014-17-01 by Felix Geisendörfer and Eric Lagergren`
 )
 

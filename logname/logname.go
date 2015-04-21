@@ -1,7 +1,7 @@
 /*
-	Go whoami -- print effective userid
+	Go logname -- print user's login name
 
-	Copyright (C) 2014 Eric Lagergren
+	Copyright (C) 2015 Eric Lagergren
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -32,18 +32,17 @@ import (
 )
 
 const (
-	HELP = `Usage: whoami [OPTION]...
-Print the user name associated with the current effective user ID.
-Same as id -un.
+	HELP = `Usage: logname [OPTION]...
+Print the name of the current user.
 
       --help     display this help and exit
       --version  output version information and exit
 
-Report whoami bugs to ericscottlagergren@gmail.com
+Report logname bugs to ericscottlagergren@gmail.com
 Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
 `
 
-	VERSION = `whoami (Go coreutils) 1.0
+	VERSION = `logname (Go coreutils) 1.0
 Copyright (C) 2015 Eric Lagergren
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.

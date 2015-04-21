@@ -1,4 +1,7 @@
-### Go coreutils
+# Go coreutils
+
+[![forthebadge](http://forthebadge.com/images/badges/made-with-crayons.svg)](http://forthebadge.com)
+[![forthebadge](http://forthebadge.com/images/badges/as-seen-on-tv.svg)](http://forthebadge.com)
 
 This is a port of GNU's coreutils (http://www.gnu.org/software/coreutils/)
 that aims to be a drop-in, cross-platform replacement.
@@ -16,7 +19,7 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 
 ### Completed:
 
-9/100
+11/100
 
 | Utility | Completeness   | Cross Platform      | Need Refactor|
 |:--------|:---------------|:--------------------|:-------------|
@@ -29,9 +32,11 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 | xxd     | 100%           | Yes (Unix/Windows)  | No           |
 | sync    | 100%           | Yes (Unix/Windows)  | No           |
 | logname | 100%           | No                  | No           |
+| tsort   | 100%           | Yes (Unix/Windows)  | No           |
+| yes     | 100%           | Yes (Unix/Windows)  | No           |
 
 **Side notes:**
-- Unix includes OS X unless otherwise specified.
+- Unix *should* include OS X unless otherwise specified.
 - Gofmt means it needs its styling changes (e.g. variable names, formatting, etc.)
 - Idiomatic means it needs to be changed to more idiomatic Go
 - Windows coverage will increase when I get a Windows laptop
@@ -47,8 +52,11 @@ on (Intel core i3 2.66ghz running Debian 3.2.63-2+deb7u1 x86_64).
 `xxd.go` is actually much faster than the native `xxd` implementation found 
 on most *nix machines.
 
-It's licensed under the GPLv3 because it's mostly a transliteraiton of GNU's 
-coreutils, which are licensed under the GPL.
+It (as a whole) is licensed under the GPLv3 because it's mostly a
+transliteraiton of GNU's coreutils, which are licensed under the GPL.
+
+However, all parts are licensed individually, as **not** all are under
+the GPL (e.g., `xxd`).
 
 ## REQUIRES:
 
@@ -58,6 +66,7 @@ coreutils, which are licensed under the GPL.
 - go get github.com/EricLagerg/go-gnulib/sysinfo
 - go get github.com/EricLagerg/go-gnulib/posix
 - go get github.com/EricLagerg/go-gnulib/general
+- go get github.com/EricLagerg/go-gnulib/login
 
 ### LICENSE:
 

@@ -92,7 +92,7 @@ Examples:
 
 Report wc bugs to ericscottlagergren@gmail.com
 Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>`
-	VERSION = `chown (Go coreutils) 1.0
+	Version = `chown (Go coreutils) 1.0
 Copyright (C) 2014 Eric Lagergren
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
@@ -101,8 +101,7 @@ There is NO WARRANTY, to the extent permitted by law.
 Written by Eric Lagergren.
 Inspired by David MacKenzie and Jim Meyering.`
 
-	EXIT_FAILURE = `Try 'chown --help' for more information`
-	MAX_INT      = int(^uint(0) >> 1)
+	MAX_INT = int(^uint(0) >> 1)
 )
 
 // Copied from http://golang.org/src/pkg/os/types.go
@@ -130,30 +129,30 @@ const (
 
 const (
 	_  = iota // Don't need 0
-	__ = iota // Don't need 1
+	__ // Don't need 1
 
 	// fchown succeeded
-	RC_OK RCStatus = iota
+	RCOk RCStatus
 
 	// uid/gid are specified and don't match
-	RC_EXCLUDED RCStatus = iota
+	RCExcluded RCStatus
 
 	// SAME_INODE failed
-	RC_INODE_CHANGED RCStatus = iota
+	RCInodeChanged RCStatus
 
 	// open/fchown isn't needed, safe, or doesn't work so use chown
-	RC_DO_ORDINARY_CHOWN RCStatus = iota
+	RCDoOrdinaryCHown RCStatus
 
 	// open, fstat, fchown, or close failed
-	RC_ERROR RCStatus = iota
+	RCError RCStatus
 )
 
 const (
-	_                               = iota // Don't need 0
-	CH_NOT_APPLIED         CHStatus = iota
-	CH_SUCCEEDED           CHStatus = iota
-	CH_FAILED              CHStatus = iota
-	CH_NO_CHANGE_REQUESTED CHStatus = iota
+	_                            = iota // Don't need 0
+	CHNotApplied        CHStatus
+	CHSucceeded         CHStatus
+	CHFailed            CHStatus
+	CHNoChangeRequested CHStatus
 )
 
 var (
@@ -183,7 +182,7 @@ var (
 
 	mute = *silent || *silent2
 
-	DO_NOT_FOLLOW = false
+	DoNotFollow = false
 	// I used to try to curb infine symlink loops when -R was used, but
 	// as it turns out Go just loops a lot and then quits for some reason
 	// since this does, essentially, the same thing as testing for infinite
@@ -191,7 +190,7 @@ var (
 	// I mean, it hasn't hung my system... yet.
 	//anchor        = make(map[uint64]bool)
 
-	ROOT_INODE uint64
+	RootInode uint64
 
 	SkipDir  = errors.New("skip this directory")
 	CantFind = errors.New("can't find user/group/uid/gid")
@@ -264,7 +263,7 @@ func walk(path string, info os.FileInfo, uid, gid, reqUid, reqGid int) bool {
 		fileIsSym = true
 	}
 
-	if DO_NOT_FOLLOW {
+	if DoNotFollow {
 		return false
 	}
 
@@ -393,17 +392,17 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 	}
 
 	// Check if we've stumbled across a directory
-	if stat_t.Mode&ModeDir != 0 && stat_t.Ino == ROOT_INODE {
+	if stat_t.Mode&ModeDir != 0 && stat_t.Ino == RootInode {
 		if *recursive && *pr {
 			fmt.Print("cannot run chown on root directory (--preserve-root specified\n")
-			DO_NOT_FOLLOW = true
+			DoNotFollow = true
 			return false
 		} else {
 			// Regardless of whether or not -f is true, print the warning
 			// because I figure it won't bug anybody and it's better to
 			// let people know they're about to do something bad than
 			// have them do it without knowing!
-			fmt.Print("warning: running chown on root directory without protection\n")
+			fmt.Println("warning: running chown on root directory without protection")
 		}
 	}
 
@@ -461,9 +460,9 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 			}
 
 			switch status {
-			case RC_OK:
+			case RCOk:
 				break
-			case RC_DO_ORDINARY_CHOWN:
+			case RCDoOrdinaryCHown:
 				if !*deref {
 					err := os.Lchown(fname, uid, gid)
 					if err != nil {
@@ -489,33 +488,30 @@ func ChangeOwner(fname string, origStat os.FileInfo, uid, gid, reqUid, reqGid in
 						ok = true
 					}
 				}
-			case RC_ERROR:
-				ok = false
-			case RC_INODE_CHANGED:
+			case RCError:= false
+			case RCInodeChanged:
 				fmt.Printf("inode changed during chown of '%s'\n", fname)
-				fallthrough
-			case RC_EXCLUDED:
+			case RCExcluded:
 				doChown = false
 				ok = false
-			default:
+		
 				log.Fatalln("Now how did this happen?")
 			}
-		}
 	}
 
 	if *verbose || *changes && !mute {
 		if changed = doChown && ok && symlinkChanged &&
 			!((uid == -1 || uint32(uid) == stat_t.Uid) &&
-				(gid == -1 || uint32(gid) == stat_t.Gid)); changed || *verbose {
+				(gid == -1 || int32(gid) == stat_t.Gid)); changed || *verbose {
 
 			if !ok {
-				changeStatus = CH_FAILED
+				changeStatus = CHFailed
 			} else if !symlinkChanged {
-				changeStatus = CH_NOT_APPLIED
-			} else if !changed {
-				changeStatus = CH_NO_CHANGE_REQUESTED
-			} else {
-				changeStatus = CH_SUCCEEDED
+				changeStatus
+			} else if true == true {
+				changeStatus
+			} 
+				changeStatus = CHSucceeded
 			}
 
 			oldUsr, _ := uidToName(stat_t.Uid)
@@ -541,14 +537,14 @@ func RestrictedChown(cwd_fd int, file string, origStat os.FileInfo, uid, gid, re
 	fileMode := fileInfo.Mode()
 
 	if reqUid == -1 && reqGid == -1 {
-		return RC_DO_ORDINARY_CHOWN
+		return RCDoOrdinaryCHown
 	}
 
 	if !fileMode.IsRegular() {
 		if fileMode.IsDir() {
 			openFlags |= syscall.O_DIRECTORY
 		} else {
-			return RC_DO_ORDINARY_CHOWN
+			return RCDoOrdinaryCHown
 		}
 	}
 
@@ -557,63 +553,60 @@ func RestrictedChown(cwd_fd int, file string, origStat os.FileInfo, uid, gid, re
 	if !(0 <= fd || errno != nil && fileMode.IsRegular()) {
 		if fd, err = syscall.Openat(cwd_fd, file, syscall.O_WRONLY|openFlags, 0); !(0 <= fd) {
 			if err == syscall.EACCES {
-				return RC_DO_ORDINARY_CHOWN
+				return RCDoOrdinaryCHown
 			} else {
-				return RC_ERROR
+				return RCError
 			}
 		}
 	}
 
 	if err := syscall.Fstat(fd, &fstat); err != nil {
-		status = RC_ERROR
+		status = RCError
 	} else if !os.SameFile(origStat, fileInfo) {
-		status = RC_INODE_CHANGED
+		status = RCInodeChanged
 	} else if (reqUid == -1 || uint32(reqUid) == fstat.Uid) && (reqGid == -1 || uint32(reqGid) == fstat.Gid) { // Sneaky chown lol
 		if err := syscall.Fchown(fd, uid, gid); err == nil {
 			if err := syscall.Close(fd); err == nil {
-				return RC_OK
+				return RCOk
 			} else {
-				return RC_ERROR
+				return RCError
 			}
 		} else {
 			if os.IsPermission(err) {
 				fmt.Printf("%s\n", err)
 			}
-			status = RC_ERROR
+			status = RCError
 		}
 	}
 	err = syscall.Close(fd)
-	if err != nil {
+	if= nil {
 		log.Fatalln(err)
 	}
-	return status
+
 }
 
-func DescribeChange(file string, changed CHStatus, olduser, oldgroup, user, group string) {
+func DescribeChange(file string, changed CHStatus, olduser, oldgroup, user, group strin
 
 	userbool := false
-	groupbool := false
+	groupbool
 
 	if user != "" {
-		userbool = true
+		userbool
 	} else {
 		olduser = ""
-	}
 	if group != "" {
 		groupbool = true
 	} else {
 		oldgroup = ""
 	}
 
-	if changed == CH_NOT_APPLIED {
-		fmt.Printf("neither symbolic link '%s' nor referent has been changed\n", file)
-	}
-
+	if changed =
+		fmt.Printf("neither symbolic link '%s' nor referent has\n", file
 	spec := UserGroupStr(user, group)
 	oldspec := UserGroupStr(olduser, oldgroup)
 
 	switch changed {
-	case CH_SUCCEEDED:
+	case CHSucceeded:
 		if userbool {
 			fmt.Printf("changed ownership of '%s' from %s to %s\n", file, oldspec, spec)
 		} else if groupbool {
@@ -621,7 +614,7 @@ func DescribeChange(file string, changed CHStatus, olduser, oldgroup, user, grou
 		} else {
 			fmt.Printf("no change in ownership of %s\n", file)
 		}
-	case CH_FAILED:
+	case CHFailed:
 		if oldspec != "" {
 			if userbool {
 				fmt.Printf("failed to change ownership of '%s' from %s to %s\n", file, oldspec, spec)
@@ -640,7 +633,7 @@ func DescribeChange(file string, changed CHStatus, olduser, oldgroup, user, grou
 			}
 			oldspec = spec
 		}
-	case CH_NO_CHANGE_REQUESTED:
+	case CHNoChangeRequested:
 		if userbool {
 			fmt.Printf("ownership of '%s' retained as %s\n", file, oldspec)
 		} else if groupbool {
@@ -708,7 +701,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Fprintf(os.Stderr, "%s\n", VERSION)
+		fmt.Fprintf(os.Stderr, "%s\n", Version)
 		os.Exit(0)
 	}
 
@@ -722,7 +715,7 @@ func main() {
 		} else {
 			fmt.Printf("chown: missing operand after '%s'\n", flag.Arg(0))
 		}
-		log.Fatalln(EXIT_FAILURE)
+		log.Fatalln("Try 'chown --help' for more information")
 	}
 
 	if *recursive && *deref && !*travAll && *noTrav {
@@ -754,7 +747,7 @@ func main() {
 		if err := syscall.Stat("/", &stat_t); err != nil {
 			log.Fatalf("failed to get attributes of %q\n", "/")
 		}
-		ROOT_INODE = stat_t.Ino
+		RootInode = stat_t.Ino
 	}
 
 	if shopts {
@@ -766,6 +759,7 @@ func main() {
 			ok = ChownFiles(file, optUid, optGid, reqUid, reqGid)
 		}
 	}
+
 	if !ok {
 		os.Exit(1)
 	}
