@@ -50,8 +50,8 @@ License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
 
-Written by Eric Lagergren <ericscottlagergren@gmail.com>
-Inspired by Written by Paul Rubin and David MacKenzie.`
+Written by Eric Lagergren <ericscottlagergren@gmail.com>`
+
 	Help = `Usage: wc [OPTION]... [FILE]
    or: wc [OPTION]... --files0-from [FILE LIST]
 
@@ -161,12 +161,11 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 	countComplicated := *printWords || *printLineLength
 
 	if !*printBytes || *printChars || *printLines || countComplicated {
-		unix.Fadvise(int(file.Fd()), 0, 0, unix.FADVISE_SEQUENTIAL)
+		unix.Fadvise(int(file.Fd()), 0, 0, unix.FADV_SEQUENTIAL)
 	}
 
-	// If we simply want the bytes we can ignore the overhead (see: GNU
-	// wc.c by Paul Rubin and David MacKenzie) of counting lines, chars,
-	// and words
+	// If we simply want the bytes we can ignore the overhead of
+	// counting lines, chars, and words
 	if *printBytes && !*printChars && !*printLines && !countComplicated {
 
 		// Manually count bytes if Stat() failed or if we're reading from
