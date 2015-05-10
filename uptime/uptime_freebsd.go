@@ -12,6 +12,7 @@ import (
 
 	"github.com/EricLagerg/go-gnulib/stdlib"
 	"github.com/EricLagerg/go-gnulib/utmp"
+	"golang.org/x/sys/unix"
 
 	flag "github.com/ogier/pflag"
 )
@@ -61,26 +62,10 @@ func printUptime(us []utmp.Utmp) {
 		uptime            float64
 	)
 
-	file, err := os.Open("/proc/uptime")
+	request := "kern.boottime"
+	foo, err := unix.Sysctl(request)
 	if err != nil {
-		fatal.Fatalln(err)
-	}
-	defer file.Close()
-
-	buf := make([]byte, 256)
-
-	n, err := file.Read(buf)
-	if err != nil && err != io.EOF {
-		fatal.Fatalln(err)
-	}
-
-	// /proc/uptime's output is in the format of "%f %f\n"
-	// The first space in the buffer will be the end of the first number
-	line := string(buf[:bytes.IndexByte(buf[:n], ' ')])
-
-	secs, err := strconv.ParseFloat(line, 64)
-	if err != nil {
-		fatal.Fatalln(err)
+		panic(err)
 	}
 
 	if 0 <= secs || secs < math.MaxFloat64 {
@@ -103,7 +88,7 @@ func printUptime(us []utmp.Utmp) {
 	now.GetTimeOfDay()
 	if uptime == 0 {
 		if bootTime == 0 {
-			fatal.Fatalln("can't get boot time")
+			fatal.Fatalln("couldn't get boot time")
 		}
 
 		uptime = float64(now.Sec - bootTime)
