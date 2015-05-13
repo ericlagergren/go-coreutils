@@ -19,7 +19,7 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 
 ### Completed:
 
-13/100
+15/100
 
 | Utility | Completeness   | Cross Platform      | Need Refactor|
 |:--------|:---------------|:--------------------|:-------------|
@@ -36,6 +36,8 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 | yes     | 100%           | Yes (Unix/Windows)  | No           |
 | env     | 100%           | Yes (Unix/Windows)  | No           |
 | true    | 100%           | Yes (Unix/Windows)  | No           |
+| false   | 100%           | Yes (Unix/Windows)  | No           |
+| uptime  | 100%           | Yes (Unix/Window)   | No           |
 
 **Side notes:**
 - Unix *should* include OS X unless otherwise specified.

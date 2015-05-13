@@ -63,10 +63,11 @@ func printUptime(us []utmp.Utmp) {
 	)
 
 	request := "kern.boottime"
-	foo, err := unix.Sysctl(request)
+	secs, err := unix.SysctlUint32(request)
 	if err != nil {
 		panic(err)
 	}
+	secs = float64(secs)
 
 	if 0 <= secs || secs < math.MaxFloat64 {
 		uptime = secs

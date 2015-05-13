@@ -125,7 +125,7 @@ var (
 
 func count(s []byte, delim byte) int64 {
 	count := int64(0)
-	i := 0
+	i, k := 0, 0
 	for i < len(s) {
 		if s[i] != delim {
 			o := bytes.IndexByte(s[i:], delim)
@@ -137,6 +137,7 @@ func count(s []byte, delim byte) int64 {
 		count++
 		i++
 	}
+
 	return count
 }
 
@@ -328,20 +329,25 @@ func getFileList(name string, size int64) []string {
 	// we just scan the entire buffer and allocate space for each string
 	// in one swoop. AFAIK it's why GNUs's wc uses physmem_available() / 2,
 	// so that it can hold the file twice in memory.
-	n := count(buf, NullByte)
+	n, indices := count(buf, NullByte)
 	list := make([]string, n)
 
-	j, k := 0, 0
-	for i := 0; i < len(buf); i++ {
-		if buf[i] == NullByte {
-			f := buf[j:i]
-
-			j = i + 1
-
-			list[k] = string(f)
-			k++
-		}
+	cur := 0
+	for i, v := range indices {
+		fmt.Println(buf[cur:v])
+		list[i] = string(buf[cur:v])
+		cur = v
 	}
+
+	// j, k := 0, 0
+	// for i := 0; i < len(buf); i++ {
+	// 	if buf[i] == NullByte {
+	// 		list[k] = string(buf[j:i])
+
+	// 		j = i + 1
+	// 		k++
+	// 	}
+	// }
 
 	return list
 }
