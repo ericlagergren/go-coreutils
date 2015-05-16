@@ -2,12 +2,12 @@
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License version 3 as
 	published by the Free Software Foundation.
-	
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
-	
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -41,7 +41,7 @@ func isAlpha(ch byte) bool {
 	return unicode.IsLetter(rune(ch))
 }
 
-func readAndHandle(reader io.Reader, flagDecode *bool, flagIgnore *bool) {
+func readAndHandle(reader io.Reader, flagDecode *bool, flagIgnore *bool, flagWrap *int) {
 	src, err := readData(reader)
 	checkError(err)
 	var toHandle []byte
@@ -63,27 +63,56 @@ func readAndHandle(reader io.Reader, flagDecode *bool, flagIgnore *bool) {
 		fmt.Printf("%s", string(decoded))
 	} else {
 		encoded := base64Encode(toHandle)
-		fmt.Printf("%s\n", string(encoded))
+		wrapPrint(encoded, *flagWrap)
 	}
 }
+
 func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
+func wrapPrint(output []byte, wrap int) {
+	if wrap == 0 {
+		fmt.Printf("%s\n", string(output))
+		return
+	}
+
+	length := len(output)
+	if length <= wrap {
+		fmt.Printf("%s\n", string(output))
+		return
+	}
+
+	index, end := 0, 0
+	for index < length {
+		end += wrap
+		if end > length {
+			end = length
+		}
+		fmt.Printf("%s\n", string(output[index:end]))
+		index += wrap
+	}
+}
+
 func main() {
 	flagDecode := flag.Bool("d", false, "Decode the data")
 	flagIgnore := flag.Bool("i", false, "When decoding, ignore non-alphabet characters")
-	//TODO: -w
+	flagWrap := flag.Int("w", 76, "Wrap encoded lines after COLS character (default 76). Use 0 to disable line wrapping.")
+
 	flag.Parse()
+	if *flagWrap < 0 {
+		log.Fatalf("invalid wrap size: %d", *flagWrap)
+	}
+
 	if len(flag.Args()) == 0 {
-		readAndHandle(os.Stdin, flagDecode, flagIgnore)
+		readAndHandle(os.Stdin, flagDecode, flagIgnore, flagWrap)
 	} else {
 		for i := 0; i < len(flag.Args()); i++ {
 			file, err := os.Open(flag.Args()[i])
 			checkError(err)
-			readAndHandle(file, flagDecode, flagIgnore)
+			readAndHandle(file, flagDecode, flagIgnore, flagWrap)
 		}
 	}
 }
