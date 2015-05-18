@@ -11,8 +11,10 @@ func TestBasename(t *testing.T) {
 		want string
 	}{
 		{[]string{"/usr/bin/sort"}, "sort\n"},
+		{[]string{"include/stdio.h"}, "stdio.h\n"},
 		{[]string{"include/stdio.h", ".h"}, "stdio\n"},
 		{[]string{"-a", "any/str1", "any/str2"}, "str1\nstr2\n"},
+		{[]string{"-a", "/a//b", "//a/b"}, "b\nb\n"},
 		{[]string{"-s", ".h", "include/stdio.h"}, "stdio\n"},
 		{[]string{"-s", ".h", "-a", "any/lib.h", "any/lib2.h"}, "str1\nstr2\n"},
 		{[]string{"-z", "any/str1"}, "str1"},
