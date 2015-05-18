@@ -15,29 +15,62 @@
 package main
 
 import (
-  "flag"
-  "fmt"
-  "path"
+	"fmt"
+	"path"
+	"strings"
+
+	flag "github.com/ogier/pflag"
 )
 
-func basename(args []string) string {
-  var base string
+var (
+	multiple = flag.StringP("multiple", "a", "", "file ...")
+	suffix   = flag.StringP("suffix", "s", "", ".h")
+	zero     = flag.BoolP("zero", "z", false, "")
+)
 
-  if len(args) == 1 {
-    base = path.Base(args[0])
-  } else if len(args) == 2 {
-    base = path.Base(args[0])
-    suffix := args[1]
-    if base[len(base)-len(suffix):] == suffix {
-      base = base[:len(base)-len(suffix)]
-    }
-  }
+func performBasename(s, suffix string, null bool) string {
+	base := path.Base(s)
 
-  return base
+	// if base[len(base)-len(suffix):] == suffix {
+	if strings.HasSuffix(base, suffix) { // let's justify strings package presence :)
+		base = base[:len(base)-len(suffix)]
+	}
+
+	if !null {
+		base += "\n"
+	}
+
+	return base
 }
 
 func main() {
-  flag.Parse()
-  name := basename(flag.Args())
-  fmt.Println(name)
+	flag.Parse()
+
+	switch {
+	case *suffix != "": //implies -a
+		fmt.Println(*suffix)
+		fallthrough
+	case *multiple != "":
+		// ugly things about to happen...
+		if flag.NArg() > 0 { // means it's using -a
+			fmt.Print(performBasename(*multiple, *suffix, *zero)) // pick first from -a
+
+			for _, v := range flag.Args() { // the rest...
+				fmt.Print(performBasename(v, *suffix, *zero))
+			}
+
+		} else { // means it's using --multiple, split em all
+			for _, v := range strings.Split(*multiple, " ") {
+				fmt.Print(performBasename(v, *suffix, *zero))
+			}
+		}
+	default:
+		name := flag.Args()[0]
+		suffix := ""
+		if flag.NArg() == 2 {
+			suffix = flag.Args()[1]
+		}
+		fmt.Print(performBasename(name, suffix, *zero))
+	}
+
 }
