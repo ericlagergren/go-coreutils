@@ -47,9 +47,6 @@ func main() {
 	flag.Parse()
 
 	switch {
-	case *suffix != "": //implies -a
-		fmt.Println(*suffix)
-		fallthrough
 	case *multiple != "":
 		// ugly things about to happen...
 		if flag.NArg() > 0 { // means it's using -a
@@ -64,6 +61,8 @@ func main() {
 				fmt.Print(performBasename(v, *suffix, *zero))
 			}
 		}
+	case *suffix != "": //implies -a
+		fmt.Print(performBasename(flag.Args()[0], *suffix, *zero))
 	default:
 		name := flag.Args()[0]
 		suffix := ""

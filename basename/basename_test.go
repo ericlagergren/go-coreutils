@@ -33,19 +33,18 @@ func TestBasename(t *testing.T) {
 		in   []string
 		want string
 	}{
-		{[]string{"-a", "any/str1", "any/str2"}, "str1\nstr2\n"},
-		{[]string{"-a", "any/str1", "any/str2"}, "str1\nstr2\n"},
-		{[]string{"-a", "/a//b", "//a/b"}, "b\nb\n"},
+		{[]string{"-a", "any/str1 any/str2"}, "str1\nstr2\n"},
+		{[]string{"-a", "any/str1 any/str2"}, "str1\nstr2\n"},
+		{[]string{"-a", "/a//b //a/b"}, "b\nb\n"},
 		{[]string{"-s", ".h", "include/stdio.h"}, "stdio\n"},
-		{[]string{"-s", ".h", "-a", "any/lib.h", "any/lib2.h"}, "str1\nstr2\n"},
+		{[]string{"-s", ".h", "-a", "any/lib.h any/lib2.h"}, "lib\nlib2\n"},
 		{[]string{"-z", "any/str1"}, "str1"},
-		{[]string{"-z", "-a", "any/str1", "any/str2"}, "str1str2"},
-		{[]string{"-z", "-s", ".h", "-a", "any/lib.h", "any/lib2.h"}, "liblib2"},
+		{[]string{"-z", "-a", "any/str1 any/str2"}, "str1str2"},
+		{[]string{"-z", "-s", ".h", "-a", "any/lib.h any/lib2.h"}, "liblib2"},
 	}
 
-	var out bytes.Buffer
-
 	for _, c := range cases {
+		var out bytes.Buffer
 		cmd := exec.Command("./basename", c.in...)
 		cmd.Stdout = &out
 		err := cmd.Run()
