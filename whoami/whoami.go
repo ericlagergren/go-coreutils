@@ -61,6 +61,17 @@ var (
 	//fatal = log.New(os.Stderr, "", log.Lshortfile)
 )
 
+func lookupUserName() string {
+	uid := strconv.Itoa(os.Geteuid())
+
+	u, err := user.LookupId(uid)
+	if err != nil {
+		fatal.Fatalf("cannot find name for user ID %d\n", uid)
+	}
+
+	return u.Username
+}
+
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "%s", HELP)
@@ -73,11 +84,5 @@ func main() {
 		os.Exit(0)
 	}
 
-	uid := strconv.Itoa(os.Geteuid())
-	u, err := user.LookupId(uid)
-	if err != nil {
-		fatal.Fatalf("cannot find name for user ID %d\n", uid)
-	}
-
-	fmt.Println(u.Username)
+	fmt.Println(lookupUserName())
 }
