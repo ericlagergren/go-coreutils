@@ -9,10 +9,10 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"syscall"
 
 	"github.com/EricLagerg/go-gnulib/stdlib"
 	"github.com/EricLagerg/go-gnulib/utmp"
-	"golang.org/x/sys/unix"
 
 	flag "github.com/ogier/pflag"
 )
@@ -63,7 +63,7 @@ func printUptime(us []utmp.Utmp) {
 	)
 
 	request := "kern.boottime"
-	secs, err := unix.SysctlUint32(request)
+	secs, err := syscall.SysctlUint32(request)
 	if err != nil {
 		panic(err)
 	}
