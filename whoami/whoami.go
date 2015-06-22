@@ -76,7 +76,7 @@ func main() {
 	uid := strconv.Itoa(os.Geteuid())
 	u, err := user.LookupId(uid)
 	if err != nil {
-		fatal.Fatalf("cannot find name for user ID %d\n", uid)
+		fatal.Fatalf("cannot find name for user ID %s\n", uid)
 	}
 
 	fmt.Println(u.Username)

@@ -146,11 +146,32 @@ func printUptime(us []utmp.Utmp) {
 }
 
 func uptime(fname string, opts int) {
+	var u utmp.Utmpx
+
+	const usize = int64(unsafe.Sizeof(u))
 	entries := uint64(0)
-	us := make([]utmp.Utmp, 0)
-	err := utmp.ReadUtmp(fname, &entries, &us, opts)
+
+	size := stat.Size()
+	us := make([]utmp.Utmpx, size/usize)
+
+	stat, err := os.Stat(fname)
 	if err != nil {
 		fatal.Fatalln(err)
+	}
+
+	i := 0
+	for {
+		u = utmp.GetUtxEnt()
+		if u == nil {
+			break
+		}
+
+		if len(*us) <= int(i) {
+			*us = append(*us, u)
+		} else {
+			(*us)[i] = u
+		}
+		i++
 	}
 
 	printUptime(us)
