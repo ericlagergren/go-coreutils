@@ -8,8 +8,8 @@ import (
 	"math"
 	"os"
 	"strconv"
-	"time"
 	"syscall"
+	"time"
 
 	"github.com/EricLagerg/go-gnulib/stdlib"
 	"github.com/EricLagerg/go-gnulib/utmp"
