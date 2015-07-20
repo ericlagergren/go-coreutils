@@ -19,7 +19,7 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 
 ### Completed:
 
-15/100
+16/100
 
 | Utility | Completeness   | Cross Platform      | Need Refactor|
 |:--------|:---------------|:--------------------|:-------------|
@@ -28,6 +28,7 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 | env     | 100%           | Yes (Unix/Windows)  | No           |
 | false   | 100%           | Yes (Unix/Windows)  | No           |
 | logname | 100%           | No                  | No           |
+| pwd     | 100%           | Yes                 | No           |
 | sync    | 100%           | Yes (Unix/Windows)  | No           |
 | true    | 100%           | Yes (Unix/Windows)  | No           |
 | tsort   | 100%           | Yes (Unix/Windows)  | No           |
