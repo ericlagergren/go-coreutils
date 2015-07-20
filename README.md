@@ -23,21 +23,21 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 
 | Utility | Completeness   | Cross Platform      | Need Refactor|
 |:--------|:---------------|:--------------------|:-------------|
-| wc      | 100%           | Yes (Unix/Windows)  | No           |
-| uname   | 100%           | No                  | Gofmt        |
 | cat     | 100%           | Yes (Unix/Windows)  | No           |
 | chown   | 90% (-R has infinite recursion issues) | No | Yes (-R)   |
-| whoami  | 100%           | Yes (Unix/Windows   | No           |
-| tty     | 100%           | Yes (Unix/Windows)  | No           |
-| xxd     | 100%           | Yes (Unix/Windows)  | No           |
-| sync    | 100%           | Yes (Unix/Windows)  | No           |
-| logname | 100%           | No                  | No           |
-| tsort   | 100%           | Yes (Unix/Windows)  | No           |
-| yes     | 100%           | Yes (Unix/Windows)  | No           |
 | env     | 100%           | Yes (Unix/Windows)  | No           |
-| true    | 100%           | Yes (Unix/Windows)  | No           |
 | false   | 100%           | Yes (Unix/Windows)  | No           |
+| logname | 100%           | No                  | No           |
+| sync    | 100%           | Yes (Unix/Windows)  | No           |
+| true    | 100%           | Yes (Unix/Windows)  | No           |
+| tsort   | 100%           | Yes (Unix/Windows)  | No           |
+| tty     | 100%           | Yes (Unix/Windows)  | No           |
+| uname   | 100%           | No                  | No           |
 | uptime  | 100%           | Yes (Unix/Window)   | No           |
+| wc      | 100%           | Yes (Unix/Windows)  | No           |
+| whoami  | 100%           | Yes (Unix/Windows   | No           |
+| xxd     | 100%           | Yes (Unix/Windows)  | No           |
+| yes     | 100%           | Yes (Unix/Windows)  | No           |
 
 **Side notes:**
 - Unix *should* include OS X unless otherwise specified.
@@ -47,13 +47,13 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 
 ### Information:
 
-These utilities should be nearly identical to GNU's coreutils, and should have 
-*relatively* the same speed. 
+These utilities should be nearly identical to GNU's coreutils, and should have
+*relatively* the same speed.
 
-For example, `wc.go` counts chars in 550MB file in < 15sec, `wc.c` in ~11sec 
+For example, `wc.go` counts chars in 550MB file in < 15sec, `wc.c` in ~11sec
 on (Intel core i3 2.66ghz running Debian 3.2.63-2+deb7u1 x86_64).
 
-`xxd.go` is actually much faster than the native `xxd` implementation found 
+`xxd.go` is actually much faster than the native `xxd` implementation found
 on most *nix machines.
 
 It (as a whole) is licensed under the GPLv3 because it's mostly a
