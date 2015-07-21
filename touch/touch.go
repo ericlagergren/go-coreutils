@@ -89,7 +89,7 @@ func main() {
 	if len(flag.Args()) > 0 {
 		for i := 0; i < len(flag.Args()); i++ {
 			filename := flag.Arg(i)
-			_, err := os.Lstat(filename)
+			_, err := os.Stat(filename)
 			if err == nil {
 				now := time.Now()
 				os.Chtimes(filename, now, now)
