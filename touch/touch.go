@@ -93,13 +93,11 @@ func main() {
 			if err == nil {
 				now := time.Now()
 				os.Chtimes(filename, now, now)
-			} else {
-				if !(*nocreate) {
-					f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0644)
-					f.Close()
-					if err != nil {
-						log.Fatal(err)
-					}
+			} else if !(*nocreate) {
+				f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0644)
+				f.Close()
+				if err != nil {
+					log.Fatal(err)
 				}
 			}
 		}
