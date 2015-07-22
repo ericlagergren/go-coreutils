@@ -83,7 +83,9 @@ func isAlpha(ch byte) bool {
 
 func readAndHandle(reader io.Reader, decode *bool, ignore *bool, wrap *int) {
 	src, err := readData(reader)
-	checkError(err)
+	if err != nil {
+		log.Fatal(err)
+	}
 	var toHandle []byte
 	if *ignore {
 		//It seems that the effect of "base64 -i" in *nix
@@ -99,17 +101,13 @@ func readAndHandle(reader io.Reader, decode *bool, ignore *bool, wrap *int) {
 	}
 	if *decode {
 		decoded, err := base64Decode(toHandle)
-		checkError(err)
+		if err != nil {
+			log.Fatal(err)
+		}
 		fmt.Printf("%s", string(decoded))
 	} else {
 		encoded := base64Encode(toHandle)
 		wrapPrint(encoded, *wrap)
-	}
-}
-
-func checkError(err error) {
-	if err != nil {
-		log.Fatal(err)
 	}
 }
 
@@ -143,21 +141,24 @@ func main() {
 	}
 	flag.Parse()
 
-	if *version {
+	switch {
+	case *version:
 		fmt.Fprintf(os.Stdout, "%s", Version)
 		os.Exit(0)
-	}
-	if *wrap < 0 {
+	case *wrap < 0:
 		log.Fatalf("invalid wrap size: %d", *wrap)
-	}
-
-	if len(flag.Args()) == 0 {
-		readAndHandle(os.Stdin, decode, ignore, wrap)
-	} else {
-		for i := 0; i < len(flag.Args()); i++ {
-			file, err := os.Open(flag.Args()[i])
-			checkError(err)
-			readAndHandle(file, decode, ignore, wrap)
+	default:
+		if len(flag.Args()) == 0 {
+			readAndHandle(os.Stdin, decode, ignore, wrap)
+		} else {
+			for i := 0; i < len(flag.Args()); i++ {
+				file, err := os.Open(flag.Args()[i])
+				if err != nil {
+					log.Fatal(err)
+				}
+				readAndHandle(file, decode, ignore, wrap)
+			}
 		}
 	}
+
 }
