@@ -9,10 +9,10 @@ import (
 )
 
 var flist = []string{
-	"test_files/lang_ru.txt",
-	"test_files/dict_en.txt",
-	"test_files/spaces_en.txt",
-	"test_files/coreutils_man_en.txt",
+	"_testdata/lang_ru.txt",
+	"_testdata/dict_en.txt",
+	"_testdata/spaces_en.txt",
+	"_testdata/coreutils_man_en.txt",
 }
 
 var buf bytes.Buffer
