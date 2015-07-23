@@ -50,7 +50,7 @@ var (
 	fatal = log.New(os.Stderr, "", 0)
 )
 
-func printUptime(us []utmp.Utmp) {
+func printUptime(us []*utmp.Utmp) {
 
 	var (
 		bootTime int32
@@ -67,7 +67,7 @@ func printUptime(us []utmp.Utmp) {
 	}
 	defer file.Close()
 
-	buf := make([]byte, 256)
+	buf := make([]byte, utmp.BufSiz)
 
 	n, err := file.Read(buf)
 	if err != nil && err != io.EOF {
@@ -75,7 +75,7 @@ func printUptime(us []utmp.Utmp) {
 	}
 
 	// /proc/uptime's output is in the format of "%f %f\n"
-	// The first space in the buffer will be the end of the first number
+	// The first space in the buffer will be the end of the first number.
 	line := string(buf[:bytes.IndexByte(buf[:n], ' ')])
 
 	secs, err := strconv.ParseFloat(line, 64)
@@ -83,10 +83,9 @@ func printUptime(us []utmp.Utmp) {
 		fatal.Fatalln(err)
 	}
 
+	uptime = -1
 	if 0 <= secs || secs < math.MaxFloat64 {
 		uptime = secs
-	} else {
-		uptime = -1
 	}
 
 	for _, v := range us {
@@ -95,7 +94,7 @@ func printUptime(us []utmp.Utmp) {
 			entries++
 		}
 
-		if v.Type == utmp.BootTime {
+		if v.TypeEquals(utmp.BootTime) {
 			bootTime = v.Time.Sec
 		}
 	}
@@ -113,27 +112,20 @@ func printUptime(us []utmp.Utmp) {
 	hours = (int(uptime) - (days * 86400)) / 3600
 	mins = (int(uptime) - (days * 86400) - (hours * 3600)) / 60
 
-	fmt.Print(time.Now().Local().Format(" 15:04pm  "))
+	os.Stdout.WriteString(time.Now().Local().Format(" 15:04pm  "))
 
 	if uptime == -1 {
-		fmt.Print("up ???? days ??:??,  ")
+		os.Stdout.WriteString("up ???? days ??:??,  ")
 	} else {
 		if 0 < days {
-			if days > 1 {
-				fmt.Printf("up %d days %2d:%02d,  ", days, hours, mins)
-			} else {
-				fmt.Printf("up %d day %2d:%02d,  ", days, hours, mins)
-			}
+			fmt.Printf(GetPlural("up %d day %2d:%02d,  ",
+				"up %d days %2d:%02d,  ", uint64(days)), days, hours, mins)
 		} else {
 			fmt.Printf("up  %2d:%02d,  ", hours, mins)
 		}
 	}
 
-	if len(us) > 1 || len(us) == 0 {
-		fmt.Printf("%d users", entries)
-	} else {
-		fmt.Printf("%d user", entries)
-	}
+	fmt.Printf(GetPlural("%d user", "%d users", uint64(entries)), entries)
 
 	var avg [3]float64
 	loads := stdlib.GetLoadAvg(&avg)
@@ -161,13 +153,27 @@ func printUptime(us []utmp.Utmp) {
 
 func uptime(fname string, opts int) {
 	entries := uint64(0)
-	us := make([]utmp.Utmp, 0)
-	err := utmp.ReadUtmp(fname, &entries, &us, opts)
+	us, err := utmp.ReadUtmp(fname, &entries, 0, opts)
 	if err != nil {
 		fatal.Fatalln(err)
 	}
 
 	printUptime(us)
+}
+
+func selectPlural(n uint64) uint64 {
+	const pluralReducer = 1000000
+	if n <= math.MaxUint64 {
+		return n
+	}
+	return n%pluralReducer + pluralReducer
+}
+
+func GetPlural(msg1, msg2 string, n uint64) string {
+	if n == 1 {
+		return msg1
+	}
+	return msg2
 }
 
 func main() {
