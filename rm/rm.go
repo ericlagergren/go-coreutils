@@ -84,8 +84,13 @@ func main() {
 	}
 	flag.Parse()
 
-	if *version {
+	switch {
+	case *version:
 		fmt.Fprintf(os.Stdout, "%s", Version)
 		os.Exit(0)
+	default:
+		for _, v := range flag.Args() {
+			os.Remove(v)
+		}
 	}
 }
