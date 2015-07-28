@@ -66,7 +66,8 @@ the GPL (e.g., `xxd`).
 ## REQUIRES:
 
 (Depends on platform and command...)
-- go get github.com/golang/x/sys
+- go get github.com/EricLagerg/ostypes
+- go get github.com/golang/x/sys/unix
 - go get github.com/ogier/pflag
 - go get github.com/EricLagerg/go-gnulib/ttyname
 - go get github.com/EricLagerg/go-gnulib/sysinfo

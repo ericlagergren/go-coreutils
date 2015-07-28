@@ -37,6 +37,6 @@ func main() {
 	}
 	flag.Parse()
 
-	// Nothing can faile
+	// Nothing can fail.
 	syscall.Sync()
 }
