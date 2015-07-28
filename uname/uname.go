@@ -94,18 +94,6 @@ func (p printer) isSet(val printer) bool {
 	return p&val != 0
 }
 
-var knownGOOS = map[string]string{
-	"darwin":    "Darwin",
-	"dragonfly": "DragonFly",
-	"freebsd":   "FreeBSD",
-	"linux":     "GNU/Linux",
-	"netbsd":    "NetBSD",
-	"openbsd":   "OpenBSD",
-	"plan9":     "Plan 9",
-	"solaris":   "Solaris",
-	"windows":   "Windows NT",
-}
-
 var printed bool
 
 func Print(element string) {
@@ -187,18 +175,14 @@ func main() {
 	}
 
 	if toprint.isSet(PrintProcessor) {
-		element := HostOS
+		element := Unknown
 		if !(toprint == MaxUint && element == Unknown) {
 			Print(element)
 		}
 	}
 
 	if toprint.isSet(PrintHardwarePlatform) {
-		element, ok := knownGOOS[""]
-		if !ok {
-			element = Unknown
-		}
-
+		element := HostOS
 		if !(toprint == MaxUint && element == Unknown) {
 			Print(element)
 		}
