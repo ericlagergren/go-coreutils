@@ -380,6 +380,7 @@ func main() {
 	// the main loop
 	var file *os.File
 	for _, arg := range args {
+		var inStat os.FileInfo
 
 		if arg == "-" {
 			file = os.Stdin
@@ -388,15 +389,16 @@ func main() {
 			if err != nil {
 				fatal.Fatalln(err)
 			}
+
+			inStat, err = file.Stat()
+			if err != nil {
+				fatal.Fatalln(err)
+			}
+			if inStat.IsDir() {
+				fatal.Printf("%s: Is a directory\n", file.Name())
+			}
 		}
 
-		inStat, err := file.Stat()
-		if err != nil {
-			fatal.Fatalln(err)
-		}
-		if inStat.IsDir() {
-			fatal.Printf("%s: Is a directory\n", file.Name())
-		}
 		inHandle := syscall.Handle(file.Fd())
 		inBsize := 4096
 
