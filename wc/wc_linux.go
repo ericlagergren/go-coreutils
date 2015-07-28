@@ -26,7 +26,6 @@
 package main
 
 import (
-	"bytes"
 	"io"
 	"os"
 	"unicode"
