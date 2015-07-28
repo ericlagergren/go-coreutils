@@ -1,7 +1,7 @@
 /*
 	Go who
 
-	Copyright (C) 2014 Eric Lagergren
+	Copyright (c) 2014-2015 Eric Lagergren
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -75,7 +75,7 @@ If FILE is not specified, use /var/run/utmp.  /var/log/wtmp as FILE is common.
 If ARG1 ARG2 given, -m presumed: 'am i' or 'mom likes' are usual.`
 
 	Version = `who (Go coreutils) 1.0
-Copyright (C) 2014 Free Software Foundation, Inc.
+Copyright (c) 2014-2015 Free Software Foundation, Inc.
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.

@@ -61,7 +61,7 @@ Report wc bugs to ericscottlagergren@gmail.com
 Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
 `
 	Version = `Go cat (Go coreutils) 2.0
-Copyright (C) 2014 Eric Lagergren
+Copyright (c) 2014-2015 Eric Lagergren
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.

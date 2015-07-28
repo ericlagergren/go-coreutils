@@ -1,7 +1,7 @@
 /*
 	Go chown -- change ownership of a file
 
-	Copyright (C) 2014 Eric Lagergren
+	Copyright (C) 2014-2015 Eric Lagergren
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 
 /*
 	Written by Eric Lagergren <ericscottlagergren@gmail.com>
-	Inspired by GNU's chown-core (Extracted from chown.c/chgrp.c and librarified by Jim Meyering.)
 */
 
 // BUG(eric): -R flag could get stuck in an infinite loop
@@ -93,7 +92,7 @@ Examples:
 Report wc bugs to ericscottlagergren@gmail.com
 Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>`
 	Version = `chown (Go coreutils) 1.0
-Copyright (C) 2014 Eric Lagergren
+Copyright (c) 2014-2015 Eric Lagergren
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
