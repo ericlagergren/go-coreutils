@@ -1,11 +1,12 @@
 /*
 	xxd -- print hexdumps of files
 
-	Distribute freely and credit me,
-	make money and share with me,
-	lose money and don’t ask me.
+	"Distribute freely and credit me,
+	 make money and share with me,
+	 lose money and don’t ask me."
 
 	Original version (in C) (c) 1990-1997 by Juergen Weigert
+	Current version (c) 2014-2015 Eric Lagergren and Felix Geisendörfer
 */
 
 package main
@@ -21,7 +22,6 @@ import (
 	flag "github.com/ogier/pflag"
 )
 
-// usage and version
 const (
 	Help = `Usage:
        xxd [options] [infile [outfile]]
@@ -49,7 +49,6 @@ Options:
 	Version = `xxd v2.0 2014-17-01 by Felix Geisendörfer and Eric Lagergren`
 )
 
-// cli flags
 var (
 	autoskip   = flag.BoolP("autoskip", "a", false, "toggle autoskip (* replaces nul lines")
 	bars       = flag.BoolP("bars", "B", false, "print |ascii| instead of ascii")
@@ -80,7 +79,7 @@ const (
 	dumpPostscript
 )
 
-// variables used in xxd*()
+// variables used in xxd*
 var (
 	dumpType int
 

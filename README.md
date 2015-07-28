@@ -15,7 +15,7 @@ I'd recommend running `go get -u ...` before you file a bug report!
 
 *Pull requests are more than welcome.*
 
-Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
+Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project that this project depends on.
 
 ### Completed:
 
@@ -28,7 +28,7 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 | env     | 100%           | Yes (Unix/Windows)  | No           |
 | false   | 100%           | Yes (Unix/Windows)  | No           |
 | logname | 100%           | No                  | No           |
-| pwd     | 100%           | Yes                 | No           |
+| pwd     | 100%           | Yes (Unknown)       | No           |
 | sync    | 100%           | Yes (Unix/Windows)  | No           |
 | true    | 100%           | Yes (Unix/Windows)  | No           |
 | tsort   | 100%           | Yes (Unix/Windows)  | No           |
@@ -51,17 +51,17 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project.
 These utilities should be nearly identical to GNU's coreutils, and should have
 *relatively* the same speed.
 
-For example, `wc.go` counts chars in 550MB file in < 15sec, `wc.c` in ~11sec
-on (Intel core i3 2.66ghz running Debian 3.2.63-2+deb7u1 x86_64).
+For example, `wc.go` counts chars in 550MB file in < 15sec and `wc.c` in ~11sec
+on an Intel core i3 2.66ghz. (Running Debian 3.2.63-2+deb7u1 x86_64.)
 
 `xxd.go` is actually much faster than the native `xxd` implementation found
-on most *nix machines.
+on most *nix machines -- try it out!
 
 It (as a whole) is licensed under the GPLv3 because it's mostly a
 transliteraiton of GNU's coreutils, which are licensed under the GPL.
 
-However, all parts are licensed individually, as **not** all are under
-the GPL (e.g., `xxd`).
+However, all parts are/can be licensed individually, as **not** all are under
+the GPL (e.g., `xxd` was public domain).
 
 ## REQUIRES:
 
