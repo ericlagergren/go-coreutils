@@ -1,3 +1,5 @@
+// +build !windows
+
 /*
 	Go whoami -- print effective userid
 
