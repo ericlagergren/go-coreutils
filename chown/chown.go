@@ -1,7 +1,7 @@
 /*
 	Go chown -- change ownership of a file
 
-	Copyright (C) 2014-2015 Eric Lagergren
+	Copyright (c) 2014-2015  Eric Lagergren
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
