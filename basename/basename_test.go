@@ -59,3 +59,5 @@ func TestBasename(t *testing.T) {
 	}
 
 }
+
+func main() {}

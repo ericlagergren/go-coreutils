@@ -1,0 +1,23 @@
+# github.com/EricLagerg/go-coreutils/csplit
+csplit/boyermoore.go:8: pattern declared and not used
+csplit/boyermoore.go:9: test declared and not used
+# github.com/EricLagerg/go-coreutils/tty
+tty/tty.go:73: undefined: ttyname.NotTty
+# github.com/EricLagerg/go-coreutils/cp
+cp/cp.go:77: path redeclared in this block
+	previous declaration at cp/cp.go:8
+cp/cp.go:308: path.Join undefined (type *bool has no field or method Join)
+# github.com/EricLagerg/go-coreutils/uname
+uname/uname.go:185: undefined: HostOS
+# github.com/EricLagerg/go-coreutils/who
+who/who.go:136: cannot use u.Time.Sec (type int32) as type int64 in argument to time.Unix
+who/who.go:136: cannot use u.Time.Usec / 1000 (type int32) as type int64 in argument to time.Unix
+who/who.go:141: undefined: utmp.UtmpBuffer
+who/who.go:143: cannot use users (type uint64) as type *uint64 in argument to utmp.ReadUtmp
+who/who.go:143: multiple-value utmp.ReadUtmp() in single-value context
+who/who.go:154: undefined: utmp.UtmpBuffer
+who/who.go:166: cannot refer to unexported name ttyname.dev
+who/who.go:166: undefined: ttyname.dev
+who/who.go:166: too many arguments in call to ttyname.TtyName
+who/who.go:203: undefined: utmp.UtmpBuffer
+who/who.go:166: too many errors

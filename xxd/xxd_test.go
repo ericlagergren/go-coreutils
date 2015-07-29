@@ -88,3 +88,5 @@ func xxdNative(r io.Reader, w io.Writer, s string) error {
 	xxd.Stderr = w
 	return xxd.Run()
 }
+
+func main() {}

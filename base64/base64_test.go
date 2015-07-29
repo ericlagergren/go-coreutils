@@ -46,3 +46,5 @@ func TestBase64Encode(t *testing.T) {
 		}
 	}
 }
+
+func main() {}

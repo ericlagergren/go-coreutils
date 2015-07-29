@@ -115,3 +115,5 @@ func TestCAT(t *testing.T) {
 	}
 
 }
+
+func main() {}
