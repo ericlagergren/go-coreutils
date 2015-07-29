@@ -24,7 +24,7 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project that
 | Utility | Completeness   | Cross Platform      | Need Refactor|
 |:--------|:---------------|:--------------------|:-------------|
 | cat     | 100%           | Yes (Unix/Windows)  | No           |
-| chown   | 90% (-R has infinite recursion issues) | No | Yes (-R)   |
+| chown   | 10% (* see note #1) | No             | Yes (-R)     |
 | env     | 100%           | Yes (Unix/Windows)  | No           |
 | false   | 100%           | Yes (Unix/Windows)  | No           |
 | logname | 100%           | No                  | No           |
@@ -39,6 +39,8 @@ Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project that
 | whoami  | 100%           | Yes (Unix/Windows   | No           |
 | xxd     | 100%           | Yes (Unix/Windows)  | No           |
 | yes     | 100%           | Yes (Unix/Windows)  | No           |
+
+* chown note: Currently refactoring from the ground-up.
 
 **Side notes:**
 - Unix *should* include OS X unless otherwise specified.

@@ -2,6 +2,10 @@ package main
 
 import "fmt"
 
+import (
+	_ "github.com/EricLagerg/go-coreutils/wc"
+)
+
 const (
 	Help = `Usage: go-coreutils [COMMAND] [PACKAGES]...
 
