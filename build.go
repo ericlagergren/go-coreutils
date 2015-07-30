@@ -1,34 +1,130 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+	"os"
+	"strings"
+	"text/template"
 
-const (
-	Help = `Usage: go-coreutils [COMMAND] [PACKAGES]...
+	flag "github.com/EricLagerg/pflag"
+)
 
-  COMMAND: install
+var (
+	usageTemplate = `go-coreutils helps you manage Go-coreutils.
 
-  -a, --all          install all utils
-      --[NAME]       install specific command (use full name)
-      --from-file=F  install from text file, F
-      --from-file0=F install from NUL-terminated string, F
+Usage:
 
-  COMMAND: remove
+	go-coreutils COMMAND [ARGUMENTS]...
 
-  -a, --all          remove all utils
-      --[NAME]       remove specific command (use full name)
-      --from-file=F  remove from text file, F
-      --from-file0=F remove from NUL-terminated string, F
+The commands are:
+{{range .}}
+	{{.Name | printf "%-11s"}} {{.Short}}{{end}}
 
-With no PACKAGES or F or either are -, read from standard input.
+Use "go-coreutils help [COMMAND]" for more information about a command.
 
-Examples:
-  go-coreutils install --all
-  go-coreutils install --rm --fmt --yes --wc
-  go-coreutils install --from-file=list.txt
-  ... -print0 | go-coreutils install --from-file0=-
+`
+
+	helpTemplate = `usage: go-coreutils {{.UsageLine}}
+
+{{.Long | trim}}
 `
 )
 
+// Command implements a specific command, e.g., go-coreutils install
+type Command struct {
+	Run func(names []string)
+
+	// Name of the command, e.g., install, overwrite...
+	Name string
+
+	// Usage is the usage message, e.g. "name [ARGUMENTS]..."
+	UsageLine string
+
+	// Short command tl;dr.
+	Short string
+
+	// go-coreutils help <command> output.
+	Long string
+
+	// Flags for this command.
+	Flag flag.FlagSet
+}
+
+func (c *Command) Usage() {
+	fmt.Fprintf(os.Stderr, "Usage: %s\n\n", c.UsageLine)
+	fmt.Fprintf(os.Stderr, "%s\n", strings.TrimSpace(c.Long))
+	os.Exit(1)
+}
+
+var commands = [...]*Command{
+	install,
+	remove,
+	overwrite,
+}
+
+func executeTemplate(w io.Writer, tmpl string, data interface{}) {
+	t := template.New("top")
+	template.Must(t.Parse(tmpl))
+	if err := t.Execute(w, data); err != nil {
+		panic(err)
+	}
+}
+
+func usage(w io.Writer) {
+	executeTemplate(w, usageTemplate, commands)
+}
+
+func fusage() {
+	usage(os.Stderr)
+}
+
+func help(args []string) {
+	if len(args) == 0 {
+		usage(os.Stdout)
+		return
+	}
+
+	if len(args) != 1 {
+		fmt.Fprintf(os.Stderr, "usage: go-coreutils help command\n\nToo many arguments given")
+		os.Exit(1)
+	}
+
+	arg := args[0]
+
+	for _, cmd := range commands {
+		if cmd.Name == arg {
+			executeTemplate(os.Stdout, helpTemplate, cmd)
+			return
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "Unknown help topic %#q. Run 'go-coreutils help'\n", arg)
+	os.Exit(1)
+}
+
 func main() {
-	fmt.Printf("%s", Help)
+	flag.Usage = fusage
+	flag.Parse()
+
+	args := flag.Args()
+	if len(args) < 1 {
+		usage(os.Stderr)
+	}
+
+	if args[0] == "help" {
+		help(args)
+	}
+
+	for _, cmd := range commands {
+		if cmd.Name == args[0] {
+			cmd.Flag.Usage = func() { cmd.Usage() }
+			cmd.Flag.Parse(args[1:])
+			args = cmd.Flag.Args()
+			cmd.Run(args)
+			return
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "go-coreutils: unknown command %q\nRun 'go-coreutils help for usage'\n", args[0])
 }
