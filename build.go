@@ -31,6 +31,8 @@ Use "go-coreutils help [COMMAND]" for more information about a command.
 `
 )
 
+var gobin = os.Getenv("GOBIN")
+
 // Command implements a specific command, e.g., go-coreutils install
 type Command struct {
 	Run func(names []string)
@@ -60,7 +62,6 @@ func (c *Command) Usage() {
 var commands = [...]*Command{
 	install,
 	remove,
-	overwrite,
 }
 
 func executeTemplate(w io.Writer, tmpl string, data interface{}) {
@@ -110,6 +111,7 @@ func main() {
 	args := flag.Args()
 	if len(args) < 1 {
 		usage(os.Stderr)
+		os.Exit(1)
 	}
 
 	if args[0] == "help" {
