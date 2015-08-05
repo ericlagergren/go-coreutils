@@ -79,9 +79,11 @@ COPYRIGHT
 
 `
 	Version = `
-VERSION
-       Go pwd (Go coreutils) 0.1
-       Copyright (C) 2015 Robert Deusser
+pwd (Go coreutils) 0.1
+Copyright (C) 2015 Robert Deusser
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
 
 `
 )
@@ -213,26 +215,23 @@ func main() {
 	}
 	flag.Parse()
 
-	if *version {
+	switch {
+	case *version:
 		fmt.Fprintf(os.Stdout, "%s", Version)
 		os.Exit(0)
-	}
-	if *logical {
+	case *logical:
 		dir, err := os.Getwd()
 		if err != nil {
 			os.Exit(1)
 		}
 		fmt.Println(dir)
-	}
-	if *physical {
+	case *physical:
 		dir, err := GetwdWithoutSymlinks()
 		if err != nil {
 			os.Exit(1)
 		}
 		fmt.Println(dir)
-	}
-
-	if len(os.Args) == 1 {
+	default:
 		dir, err := GetwdWithoutSymlinks()
 		if err != nil {
 			os.Exit(1)
