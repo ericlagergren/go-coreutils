@@ -17,19 +17,15 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// There are no comments because, to be honest, I didn't take the time
-// to understand the topological sort algorithm. I did read Donald Knuth's
-// papers, but only briefly. What comments I could add wouldn't be terribly
-// useful to anybody.
-
 package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 
 	"golang.org/x/sys/unix"
 
@@ -43,8 +39,8 @@ With no FILE, or when FILE is -, read standard input.
 
       --help     display this help and exit
       --version  output version information and exit
-GNU coreutils online help: <http://www.gnu.org/software/coreutils/>
-For complete documentation, run: info coreutils 'tsort invocation'
+Report wc bugs to ericscottlagergren@gmail.com
+Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
 `
 
 	Version = `tsort (Go coreutils) 1
@@ -58,7 +54,6 @@ There is NO WARRANTY, to the extent permitted by law.
 var (
 	version = flag.BoolP("version", "v", false, "")
 
-	// fatal = log.New(os.Stderr, "", log.Lshortfile)
 	fatal = log.New(os.Stderr, "", 0)
 )
 
@@ -80,26 +75,14 @@ type item struct {
 type action func(*item) bool
 
 var (
-	head  *item = nil // Head of list
-	zeros *item = nil // Tail of the list of 'zeros' (no predecessors)
-	loop  *item = nil // Used for loop detection
+	head  *item // Head of list
+	zeros *item // Tail of the list of 'zeros' (no predecessors)
+	loop  *item // Used for loop detection
 
 	numStrings int64 // Strings to sort
 )
 
-func newItem(str string) *item {
-	k := new(item)
-
-	k.str = str
-	k.right = nil
-	k.left = k.right
-
-	k.balance = 0
-	k.qlink = nil
-	k.top = nil
-
-	return k
-}
+func newItem(str string) *item { return &item{str: str} }
 
 // Search binary tree for STR. If ROOT is nil, create a new tree.
 func (root *item) searchItem(str string) *item {
@@ -109,8 +92,6 @@ func (root *item) searchItem(str string) *item {
 		r = new(item)
 		s = new(item)
 		t = new(item)
-
-		a int
 	)
 
 	if root.right == nil {
@@ -123,7 +104,7 @@ func (root *item) searchItem(str string) *item {
 	s = p
 
 	for {
-		a = bytes.Compare([]byte(str), []byte(p.str))
+		a := strings.Compare(str, p.str)
 		if a == 0 {
 			return p
 		}
@@ -143,7 +124,7 @@ func (root *item) searchItem(str string) *item {
 				p.right = q
 			}
 
-			if bytes.Compare([]byte(str), []byte(s.str)) < 0 {
+			if strings.Compare(str, s.str) < 0 {
 				p = s.left
 				r = p
 				a = -1
@@ -154,7 +135,7 @@ func (root *item) searchItem(str string) *item {
 			}
 
 			for p != q {
-				if bytes.Compare([]byte(str), []byte(p.str)) < 0 {
+				if strings.Compare(str, p.str) < 0 {
 					p.balance = -1
 					p = p.left
 				} else {
@@ -229,9 +210,10 @@ func (root *item) searchItem(str string) *item {
 func recordRelation(j, k *item) {
 	if j.str != k.str {
 		k.count++
-		p := new(successor)
-		p.suc = k
-		p.next = j.top
+		p := &successor{
+			suc:  k,
+			next: j.top,
+		}
 		j.top = p
 	}
 }
@@ -273,7 +255,7 @@ func detectLoop(k *item) bool {
 						for loop != nil {
 							tmp := loop.qlink
 
-							fatal.Println(loop.str)
+							fatal.Printf("tsort: %s", loop.str)
 
 							if loop == k {
 								(*p).suc.count--
@@ -293,11 +275,11 @@ func detectLoop(k *item) bool {
 						}
 
 						return true
-					} else {
-						k.qlink = loop
-						loop = k
-						break
 					}
+
+					k.qlink = loop
+					loop = k
+					break
 				}
 				p = &(*p).next
 			}
@@ -311,21 +293,21 @@ func detectLoop(k *item) bool {
 func (root *item) recurseTree(fn action) bool {
 	if root.left == nil && root.right == nil {
 		return fn(root)
-	} else {
-		if root.left != nil {
-			if root.left.recurseTree(fn) {
-				return true
-			}
-		}
+	}
 
-		if fn(root) {
+	if root.left != nil {
+		if root.left.recurseTree(fn) {
 			return true
 		}
+	}
 
-		if root.right != nil {
-			if root.right.recurseTree(fn) {
-				return true
-			}
+	if fn(root) {
+		return true
+	}
+
+	if root.right != nil {
+		if root.right.recurseTree(fn) {
+			return true
 		}
 	}
 
@@ -339,21 +321,26 @@ func (root *item) walkTree(fn action) {
 	}
 }
 
-func tsort(file *os.File) int {
-	root := newItem("")
+func tsort(rw io.ReadWriter) int {
 
 	var (
-		j *item = nil
-		k *item = nil
+		root = newItem("")
+
+		j *item
+		k *item
+
+		ok int
 	)
 
-	ok := 0
-
-	reader := bufio.NewReader(file)
-	scanner := bufio.NewScanner(reader)
+	scanner := bufio.NewScanner(rw)
 	scanner.Split(bufio.ScanWords)
 
-	unix.Fadvise(int(file.Fd()), 0, 0, unix.FADV_SEQUENTIAL)
+	// https://talks.golang.org/2015/tricks.slide#16
+	if file, ok := rw.(interface {
+		Fd() uintptr
+	}); ok {
+		unix.Fadvise(int(file.Fd()), 0, 0, unix.FADV_SEQUENTIAL)
+	}
 
 	for scanner.Scan() {
 		k = root.searchItem(scanner.Text())
@@ -379,7 +366,7 @@ func tsort(file *os.File) int {
 		for head != nil {
 			p := head.top
 
-			fmt.Println(head.str)
+			fmt.Fprintln(rw, head.str)
 
 			head.str = ""
 			numStrings--
@@ -398,7 +385,7 @@ func tsort(file *os.File) int {
 		}
 
 		if numStrings > 0 {
-			fatal.Print("input contains a loop:")
+			fatal.Print("tsort: input contains a loop:")
 			ok = 1
 
 			for {
@@ -430,14 +417,12 @@ func main() {
 		fatal.Fatalf("extra operand %s", flag.Arg(1))
 	}
 
-	var (
-		file *os.File
-		err  error
-	)
+	file := os.Stdin
+	if (flag.Arg(0) != "-" &&
+		flag.Arg(0) != "") ||
+		flag.NArg() != 0 {
 
-	if flag.Arg(0) == "-" || flag.NArg() == 0 {
-		file = os.Stdin
-	} else {
+		var err error
 		file, err = os.Open(flag.Arg(0))
 		if err != nil {
 			fatal.Fatalln(err)
@@ -445,7 +430,11 @@ func main() {
 		defer file.Close()
 	}
 
-	ok := tsort(file)
-
-	os.Exit(ok)
+	os.Exit(tsort(struct {
+		io.Reader
+		io.Writer
+	}{
+		file,
+		os.Stdout,
+	}))
 }
