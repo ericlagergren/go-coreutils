@@ -16,9 +16,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-/*
-	Written by Eric Lagergren <ericscottlagergren@gmail.com>
-*/
+// Written by Eric Lagergren <ericscottlagergren@gmail.com>
 
 package main
 
