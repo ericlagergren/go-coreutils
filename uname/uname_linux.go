@@ -22,11 +22,7 @@
 
 package main
 
-import (
-	"io/ioutil"
-	"strings"
-	"syscall"
-)
+import "syscall"
 
 type info struct {
 	sysname  string
@@ -36,13 +32,7 @@ type info struct {
 	machine  string
 }
 
-func Proc() string {
-	c, _ := ioutil.ReadFile(ProcCPU)
-	line := strings.Split(string(c), "\n")
-	return string(line[4][13:])
-}
-
-func IntToString(a [65]int8) string {
+func intToString(a [65]int8) string {
 	var (
 		tmp [65]byte
 		i   int
@@ -54,14 +44,14 @@ func IntToString(a [65]int8) string {
 	return string(tmp[:i])
 }
 
-func GenInfo() (*info, error) {
+func genInfo() (*info, error) {
 	var name syscall.Utsname
 	err := syscall.Uname(&name)
 	return &info{
-		sysname:  IntToString(name.Sysname),
-		nodename: IntToString(name.Nodename),
-		release:  IntToString(name.Release),
-		version:  IntToString(name.Version),
-		machine:  IntToString(name.Machine),
+		sysname:  intToString(name.Sysname),
+		nodename: intToString(name.Nodename),
+		release:  intToString(name.Release),
+		version:  intToString(name.Version),
+		machine:  intToString(name.Machine),
 	}, err
 }

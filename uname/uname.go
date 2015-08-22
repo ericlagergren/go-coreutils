@@ -16,9 +16,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-/*
-	Written by Eric Lagergren <ericscottlagergren@gmail.com>
-*/
+// Written by Eric Lagergren <ericscottlagergren@gmail.com>
 
 package main
 
@@ -79,6 +77,7 @@ var (
 
 type printer uint
 
+// Enumerated printing options.
 const (
 	PrintKernelName printer = 1 << iota
 	PrintNodeName
@@ -96,7 +95,7 @@ func (p printer) isSet(val printer) bool {
 
 var printed bool
 
-func Print(element string) {
+func print(element string) {
 	if printed {
 		fmt.Print(" ")
 	}
@@ -152,39 +151,39 @@ func main() {
 		(PrintKernelName | PrintNodeName | PrintKernelRelease |
 			PrintKernelVersion | PrintMachine)) {
 
-		name, err := GenInfo()
+		name, err := genInfo()
 		if err != nil {
 			fatal.Fatalln("cannot get system name")
 		}
 
 		if toprint.isSet(PrintKernelName) {
-			Print(name.sysname)
+			print(name.sysname)
 		}
 		if toprint.isSet(PrintNodeName) {
-			Print(name.nodename)
+			print(name.nodename)
 		}
 		if toprint.isSet(PrintKernelRelease) {
-			Print(name.release)
+			print(name.release)
 		}
 		if toprint.isSet(PrintKernelVersion) {
-			Print(name.version)
+			print(name.version)
 		}
 		if toprint.isSet(PrintMachine) {
-			Print(name.machine)
+			print(name.machine)
 		}
 	}
 
 	if toprint.isSet(PrintProcessor) {
 		element := Unknown
 		if !(toprint == MaxUint && element == Unknown) {
-			Print(element)
+			print(element)
 		}
 	}
 
 	if toprint.isSet(PrintHardwarePlatform) {
 		element := HostOS
 		if !(toprint == MaxUint && element == Unknown) {
-			Print(element)
+			print(element)
 		}
 	}
 
