@@ -17,11 +17,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*
-	Written by Eric Lagergren <ericscottlagergren@gmail.com>
-	Inspired by GNU's wc, which was written by
-	Paul Rubin, phr@ocf.berkeley.edu and David MacKenzie, djm@gnu.ai.mit.edu
-*/
+// Written by Eric Lagergren <ericscottlagergren@gmail.com>
 
 package main
 
@@ -43,7 +39,7 @@ import (
 
 const (
 	Version = `Go wc (Go coreutils) 2.1
-Copyright (C) 2015 Eric Lagergren
+Copyright (C) 2014-2015 Eric Lagergren
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
@@ -111,8 +107,6 @@ var (
 	constVersion    = flag.BoolP("unicode-version", "u", false, "")
 	version         = flag.BoolP("version", "v", false, "")
 
-	// fatal.Fatal helper
-	//fatal = log.New(os.Stderr, "", log.Lshortfile)
 	fatal = log.New(os.Stderr, "", 0)
 )
 
