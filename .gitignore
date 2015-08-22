@@ -27,3 +27,6 @@ lst
 .out # same
 coreutils/
 .tags
+
+# binary
+go-coreutils
