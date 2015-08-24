@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	flag "github.com/EricLagerg/pflag"
 )
@@ -39,28 +41,53 @@ The install flags -- shared with overwrite and remove -- are as follows:
 }
 
 var (
+	all       = flag.BoolP("all", "a", false, "")
 	overwrite = flag.BoolP("overwrite", "o", false, "")
 	prefix    = flag.StringP("prefix", "p", "", "")
 	dir       = flag.StringP("dir", "d", "", "")
+
+	complicated = *overwrite || *prefix != "" || *dir != ""
 )
 
 func installUtils(names []string) {
 	if gobin == "" && *dir == "" {
-		fmt.Println("Cannot have empty $GOBIN and empty --dir")
+		fmt.Println("go-coreutils: Cannot have empty $GOBIN and empty --dir")
 		os.Exit(1)
 	}
 
-	for _, name := range names {
-		if _, ok := utilities[name]; ok {
-			run(name, "go", "generate")
-			run(name, "go", "install")
-		}
+	if len(names) < 1 {
+		fmt.Println("go-coreutils: Must list utilities to install or use --all option")
+		os.Exit(1)
 	}
+
+	loopUtilities(names)
 }
 
-func run(dir string, args ...interface{}) {
-	cmds := list(args...)
+func goGenerate(name string) { runCmd(name, "go", "generate") }
 
+func doSimple(name string) {
+	goGenerate(name)
+	runCmd(name, "go", "install")
+}
+
+func doComplicated(name string) {
+	goGenerate(name)
+	runCmd(name, "go", "build")
+
+	if *dir == "" {
+		*dir = filepath.Dir(runCmdWithOutput("", "which", name))
+	}
+
+	newName := *prefix + name
+	if !*overwrite {
+		name = filepath.Join(*dir, *prefix+name+".2")
+	}
+
+	runCmd(name, "mv", name, newName)
+}
+
+func runCmd(dir string, args ...interface{}) {
+	cmds := list(args...)
 	cmd := exec.Command(cmds[0], cmds[1:]...)
 	cmd.Dir = dir
 	cmd.Stdout = os.Stdout
@@ -70,17 +97,30 @@ func run(dir string, args ...interface{}) {
 	}
 }
 
+func runCmdWithOutput(dir string, args ...interface{}) string {
+	cmds := list(args...)
+	cmd := exec.Command(cmds[0], cmds[1:]...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		os.Stderr.Write(out)
+		panic(err)
+		out = nil
+	}
+	return string(bytes.TrimSpace(out))
+}
+
 func list(args ...interface{}) []string {
-	var x []string
+	var list []string
 	for _, arg := range args {
 		switch arg := arg.(type) {
 		case []string:
-			x = append(x, arg...)
+			list = append(list, arg...)
 		case string:
-			x = append(x, arg)
+			list = append(list, arg)
 		default:
 			panic("stringList: invalid argument")
 		}
 	}
-	return x
+	return list
 }

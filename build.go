@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 	"text/template"
 
 	flag "github.com/EricLagerg/pflag"
@@ -104,6 +106,64 @@ func help(args []string) {
 	os.Exit(1)
 }
 
+var (
+	once      sync.Once
+	empty     struct{}
+	utilities map[string]struct{}
+)
+
+func buildUtilMap() {
+	utilities = make(map[string]struct{})
+
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	dir, err := os.Open(wd)
+	if err != nil {
+		panic(err)
+	}
+	defer dir.Close()
+
+	stats, err := dir.Readdir(-1)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, info := range stats {
+		name := filepath.Base(info.Name())
+		if name != "Godeps" &&
+			info.Mode().IsDir() &&
+			strings.Index(name, ".") == -1 {
+
+			utilities[name] = empty
+		}
+	}
+}
+
+func loopUtilities(names []string) {
+	if *all {
+		for _, name := range names {
+			doAction(name)
+		}
+	} else {
+		for _, name := range names {
+			if _, ok := utilities[name]; ok {
+				doAction(name)
+			}
+		}
+	}
+}
+
+func doAction(name string) {
+	if complicated {
+		doComplicated(name)
+	} else {
+		doSimple(name)
+	}
+}
+
 func main() {
 	flag.Usage = fusage
 	flag.Parse()
@@ -117,6 +177,8 @@ func main() {
 	if args[0] == "help" {
 		help(args)
 	}
+
+	once.Do(buildUtilMap)
 
 	for _, cmd := range commands {
 		if cmd.Name == args[0] {
