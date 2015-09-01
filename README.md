@@ -69,7 +69,7 @@ the GPL (e.g., `xxd` was public domain).
 
 (Depends on platform and command...)
 - go get github.com/EricLagerg/ostypes
-- go get github.com/golang/x/sys/unix
+- go get golang.org/x/sys/unix
 - go get github.com/ogier/pflag
 - go get github.com/EricLagerg/go-gnulib/ttyname
 - go get github.com/EricLagerg/go-gnulib/sysinfo
