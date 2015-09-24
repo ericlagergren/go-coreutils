@@ -23,6 +23,7 @@ import (
 	flag "github.com/ogier/pflag"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -114,6 +115,8 @@ func check_md5sum_f(fp io.Reader) bool {
 		if fn[0] == '*' {
 			fn = fn[1:]
 		}
+
+		fn = filepath.Clean(fn)
 
 		file, err := os.Open(fn)
 		if err != nil {
