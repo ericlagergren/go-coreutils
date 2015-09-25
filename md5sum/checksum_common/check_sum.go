@@ -16,6 +16,9 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*
+the core checksum implements of md5, sha1, sha224, sha256, sha384, sha512.
+*/
 package checksum_common
 
 import (
@@ -163,11 +166,13 @@ func check_checksum_f(fp io.Reader, t string) bool {
 /*
 read the file contains the checksum and check it
 
-files: file lists which contains the checksums
-t: checksum type, md5 or sha1
+files: file name lists which contains the checksums.
+
+t: the type of checksum, md5 or sha1...
 
 return true if everything is ok
-return false otherwise
+
+return false if there are some errors.
 */
 func CompareChecksum(files []string, t string, output_message, output_warn bool) bool {
 	no_output = !output_message

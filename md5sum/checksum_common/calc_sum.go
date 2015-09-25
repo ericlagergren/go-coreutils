@@ -119,10 +119,12 @@ func gen_checksum(files []string, t string) bool {
 /*
    generate the checksum for given file list.
 
-   files: the file list to generate checksum
-   t: the type of checksum, md5 or sha1
+   files: the file name lists to generate checksum
 
-   return false if have some errors.
+   t: the type of checksum, md5 or sha1...
+
+   return false if there are some errors.
+
    return true if there is no error.
 */
 func GenerateChecksum(files []string, t string) bool {

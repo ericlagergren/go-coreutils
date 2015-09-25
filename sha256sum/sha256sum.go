@@ -21,7 +21,9 @@
 Sha256sum util implement by go.
 
 Usage: sha256sum [OPTION]... [FILE]...
+
 Print or check SHA256 (256-bit) checksums.
+
 With no FILE, or when FILE is -, read standard input.
 
   -b, --binary  read in binary mode(default)
@@ -65,14 +67,14 @@ The following three options are useful only when verifying checksums:
       --quiet    don't print OK for each successfully verified file
       --status   don't output anything, status code shows success
   -w, --warn     warn about improperly formated checksum lines
-  
+
       --help     show help and exit
       --version  show version and exit
 
 The sums are computed as described in FIPS-180-2.  When checking, the input
 should be a former output of this program.  The default mode is to print
 a line with checksum, a character indicating type ('*' for binary, ' ' for
-text), and name for each FILE.      
+text), and name for each FILE.
 `
 	Version = `sha256sum (Go coreutils) 0.1
 Copyright (C) 2015 Dingjun Fang

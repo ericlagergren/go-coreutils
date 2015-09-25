@@ -21,7 +21,9 @@
 Sha512sum util implement by go.
 
 Usage: sha512sum [OPTION]... [FILE]...
+
 Print or check SHA512 (512-bit) checksums.
+
 With no FILE, or when FILE is -, read standard input.
 
   -b, --binary  read in binary mode(default)
