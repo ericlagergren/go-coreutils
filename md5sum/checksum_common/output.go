@@ -1,5 +1,5 @@
 /*
-    go md5sum
+    go checksum common
 
     Copyright (c) 2014-2015 Dingjun Fang
 
@@ -16,18 +16,21 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package main
+package checksum_common
 
 import (
 	"fmt"
 	"os"
 )
 
+var no_output bool = false
+var show_warn bool = true
+
 /*
    output to stdout
 */
 func output_n(s string, s1 ...interface{}) {
-	if *no_output != true {
+	if no_output != true {
 		fmt.Fprintf(os.Stdout, s, s1...)
 	}
 }
@@ -36,7 +39,7 @@ func output_n(s string, s1 ...interface{}) {
    output to stderr
 */
 func output_e(s string, s1 ...interface{}) {
-	if *no_output != true {
+	if no_output != true {
 		fmt.Fprintf(os.Stderr, s, s1...)
 	}
 }
