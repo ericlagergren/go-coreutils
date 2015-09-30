@@ -1,5 +1,5 @@
 /*
-    go md5sum
+    go checksum common
 
     Copyright (c) 2014-2015 Dingjun Fang
 
@@ -16,39 +16,45 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package main
+/*
+the core checksum implements of md5, sha1, sha224, sha256, sha384, sha512.
+*/
+package checksum_common
 
 import (
 	"bufio"
-	flag "github.com/ogier/pflag"
+	//flag "github.com/ogier/pflag"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
 /*
-   check the md5sum for all of files from cmdline
+   check the checksum for all of files
 */
-func check_md5sum() bool {
-	if len(flag.Args()) == 0 ||
-		(len(flag.Args()) == 1 && flag.Args()[0] == "-") {
-
-		/* Known Issue:
-		   Ctrl+Z on cmd can not trigger io.EOF */
-		return check_md5sum_f(os.Stdin)
-	}
+func check_checksum(files []string, t string) bool {
 
 	has_err := false
 
-	for i := 0; i < len(flag.Args()); i++ {
-		//output_e("use file: %s\n", flag.Args()[i])
-		file, err := os.Open(flag.Args()[i])
+	for i := 0; i < len(files); i++ {
+
+		/* stdin */
+		if files[i] == "-" {
+			if b := check_checksum_f(os.Stdin, t); !b {
+				has_err = true
+			}
+			continue
+		}
+
+		/* file */
+		file, err := os.Open(files[i])
 		if err != nil {
-			output_e("md5sum: %s\n", err.Error())
+			output_e("%ssum: %s\n", t, err.Error())
 			has_err = true
 			continue
 		}
-		if b := check_md5sum_f(file); !b {
+		if b := check_checksum_f(file, t); !b {
 			has_err = true
 		}
 		file.Close()
@@ -58,9 +64,9 @@ func check_md5sum() bool {
 }
 
 /*
-   process single md5 list file
+   process single checksum list file
 */
-func check_md5sum_f(fp io.Reader) bool {
+func check_checksum_f(fp io.Reader, t string) bool {
 	has_err := false
 	reader := bufio.NewReader(fp)
 
@@ -82,7 +88,7 @@ func check_md5sum_f(fp io.Reader) bool {
 		if err != nil {
 			if err != io.EOF {
 				has_err = true
-				output_e("md5sum: %s\n", err.Error())
+				output_e("%ssum: %s\n", t, err.Error())
 			}
 			break
 		}
@@ -101,9 +107,9 @@ func check_md5sum_f(fp io.Reader) bool {
 		fields := strings.Fields(ll)
 
 		if len(fields) != 2 {
-			if *show_warn {
-				output_e("md5sum: line: %d: improperly formatted MD5 checksum line\n",
-					line_num)
+			if show_warn {
+				output_e("%ssum: line: %d: improperly formatted %s checksum line\n",
+					t, line_num, strings.ToUpper(t))
 			}
 			continue
 		}
@@ -115,15 +121,17 @@ func check_md5sum_f(fp io.Reader) bool {
 			fn = fn[1:]
 		}
 
+		fn = filepath.Clean(fn)
+
 		file, err := os.Open(fn)
 		if err != nil {
-			output_e("md5sum: %s\n", err.Error())
+			output_e("%ssum: %s\n", t, err.Error())
 			has_err = true
 			errored += 1
 			continue
 		}
 
-		sum1 := calc_md5sum(file)
+		sum1 := calc_checksum(file, t)
 		file.Close()
 
 		total += 1
@@ -142,15 +150,32 @@ func check_md5sum_f(fp io.Reader) bool {
 		}
 	}
 
-	if failed > 0 && *show_warn {
-		output_e("md5sum: WARNING: %d of %d computed checksums did NOT match\n",
-			failed, total)
+	if failed > 0 && show_warn {
+		output_e("%ssum: WARNING: %d of %d computed checksums did NOT match\n",
+			t, failed, total)
 	}
 
-	if errored > 0 && *show_warn {
-		output_e("md5sum: WARNING: %d of %d listed files could not be read\n",
-			errored, total)
+	if errored > 0 && show_warn {
+		output_e("%ssum: WARNING: %d of %d listed files could not be read\n",
+			t, errored, total)
 	}
 
 	return !has_err
+}
+
+/*
+read the file contains the checksum and check it
+
+files: file name lists which contains the checksums.
+
+t: the type of checksum, md5 or sha1...
+
+return true if everything is ok
+
+return false if there are some errors.
+*/
+func CompareChecksum(files []string, t string, output_message, output_warn bool) bool {
+	no_output = !output_message
+	show_warn = output_warn
+	return check_checksum(files, t)
 }

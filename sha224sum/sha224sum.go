@@ -1,5 +1,5 @@
 /*
-    go md5sum
+    go sha224sum
 
     Copyright (c) 2014-2015 Dingjun Fang
 
@@ -18,16 +18,16 @@
 
 /*
 
-Md5sum util implement by go.
+Sha224sum util implement by go.
 
-Usage: md5sum [OPTION]... [FILE]...
+Usage: sha224sum [OPTION]... [FILE]...
 
-Print or check MD5 (128-bit) checksums.
+Print or check SHA224 (224-bit) checksums.
 
 With no FILE, or when FILE is -, read standard input.
 
   -b, --binary  read in binary mode(default)
-  -c, --check   read MD5 sums from the FILEs and check them
+  -c, --check   read SHA224 sums from the FILEs and check them
   -t, --text    read in text mode
   Note: there is no difference between text and binary mode option.
 
@@ -39,7 +39,7 @@ The following three options are useful only when verifying checksums:
       --help     show help and exit
       --version  show version and exit
 
-The sums are computed as described in RFC 1321.  When checking, the input
+The sums are computed as described in RFC 3874.  When checking, the input
 should be a former output of this program.  The default mode is to print
 a line with checksum, a character indicating type ('*' for binary, ' ' for
 text), and name for each FILE.
@@ -54,12 +54,12 @@ import (
 )
 
 const (
-	Help = `Usage: md5sum [OPTION]... [FILE]...
-Print or check MD5 (128-bit) checksums.
+	Help = `Usage: sha224sum [OPTION]... [FILE]...
+Print or check SHA224 (224-bit) checksums.
 With no FILE, or when FILE is -, read standard input.
 
   -b, --binary  read in binary mode(default)
-  -c, --check   read MD5 sums from the FILEs and check them
+  -c, --check   read SHA224 sums from the FILEs and check them
   -t, --text    read in text mode
   Note: there is no difference between text and binary mode option.
 
@@ -71,12 +71,12 @@ The following three options are useful only when verifying checksums:
       --help     show help and exit
       --version  show version and exit
 
-The sums are computed as described in RFC 1321.  When checking, the input
+The sums are computed as described in RFC 3874.  When checking, the input
 should be a former output of this program.  The default mode is to print
 a line with checksum, a character indicating type ('*' for binary, ' ' for
 text), and name for each FILE.
 `
-	Version = `md5sum (Go coreutils) 0.1
+	Version = `sha224sum (Go coreutils) 0.1
 Copyright (C) 2015 Dingjun Fang
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
@@ -119,12 +119,12 @@ func main() {
 		fmt.Fprintf(os.Stdout, "%s", Version)
 		os.Exit(0)
 	case *check_sum:
-		if r := cc.CompareChecksum(file_lists, "md5",
+		if r := cc.CompareChecksum(file_lists, "sha224",
 			!(*no_output), *show_warn); !r {
 			has_error = true
 		}
 	default:
-		if r := cc.GenerateChecksum(file_lists, "md5"); !r {
+		if r := cc.GenerateChecksum(file_lists, "sha224"); !r {
 			has_error = true
 		}
 	}
