@@ -19,8 +19,8 @@ var buf bytes.Buffer
 
 func TestWC(t *testing.T) {
 
-	fs := getFileStatus(4, flist)
-	numberWidth = findNumberWidth(4, fs)
+	fs := getFileStatus(flist)
+	numberWidth = findNumberWidth(fs)
 
 	*printLines = true
 	*printWords = true

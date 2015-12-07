@@ -32,13 +32,12 @@ import (
 	"unicode"
 
 	"github.com/EricLagerg/go-gnulib/sysinfo"
-	"github.com/EricLagerg/go-gnulib/ttyname"
 
 	flag "github.com/ogier/pflag"
 )
 
 const (
-	Version = `Go wc (Go coreutils) 2.1
+	Version = `Go wc (Go coreutils) 2.2
 Copyright (C) 2014-2015 Eric Lagergren
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
@@ -75,9 +74,8 @@ Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
 	HorizTab    = rune('\t')
 	VertTab     = rune('\v')
 	Space       = rune(' ')
-	Null        = rune(0x0)
 	NewLineByte = 10
-	NullByte    = 0
+	NullByte    = 0x00
 	BufferSize  = (64 * 1024)
 )
 
@@ -94,7 +92,7 @@ var (
 	printOne    bool
 
 	// For getFileStatus.
-	errNoStat = errors.New("No stat.")
+	errNoStat = errors.New("no stat")
 
 	// Our cli args
 	printLines      = flag.BoolP("lines", "l", false, "")
@@ -107,8 +105,26 @@ var (
 	constVersion    = flag.BoolP("unicode-version", "u", false, "")
 	version         = flag.BoolP("version", "v", false, "")
 
-	fatal = log.New(os.Stderr, "", 0)
+	logger = log.New(os.Stderr, "", 0)
+
+	programName = binName()
 )
+
+func binName() string {
+	file := os.Args[0]
+	var i int
+	for i = len(file) - 1; i > 0 && file[i] != '/'; i-- {
+	}
+	return file[i+1:]
+}
+
+func fatal(format string, v ...interface{}) {
+	logger.Fatalf("%s: %s\n", programName, fmt.Sprintf(format, v...))
+}
+
+func print(format string, v ...interface{}) {
+	logger.Printf("%s: %s\n", programName, fmt.Sprintf(format, v...))
+}
 
 type fstatus struct {
 	failed error
@@ -132,7 +148,7 @@ func count(s []byte, delim byte) int64 {
 	return count
 }
 
-func min(a, b uint64) uint64 {
+func min(a, b int64) int64 {
 	if a > b {
 		return b
 	}
@@ -150,28 +166,22 @@ func isReasonable(name string) (bool, int64) {
 		return false, -1
 	}
 
-	if info.Mode().IsRegular() &&
-		uint64(info.Size()) <= min(10*1024*1024, sysinfo.PhysmemAvail()/2) {
-		return true, info.Size()
-	}
-
-	return false, info.Size()
+	return info.Mode().IsRegular() &&
+		info.Size() <= min(10*1024*1024, sysinfo.PhysmemAvailable()/2), info.Size()
 }
 
 func getFileList(name string, size int64) ([]string, int) {
-
 	fi, err := os.Open(name)
 	if err != nil {
-		return nil, -1
+		fatal("%s", err.Error())
 	}
 	defer fi.Close()
 
-	// buffer to hold file
 	buf := make([]byte, size)
 
 	_, err = fi.Read(buf)
 	if err != nil && err != io.EOF {
-		return nil, -1
+		fatal("%s", err.Error())
 	}
 
 	var list []string
@@ -193,52 +203,52 @@ func getFileList(name string, size int64) ([]string, int) {
 	return list, count
 }
 
-func getFileStatus(n int, names []string) []*fstatus {
+func getFileStatus(names []string) []fstatus {
 	nf := 1
+	n := len(names)
 	if n > 1 {
 		nf = n
 	}
 
-	f := make([]*fstatus, nf)
+	f := make([]fstatus, nf)
 
 	if n == 0 || (n == 1 && printOne) {
-		f[0] = &fstatus{errNoStat, nil}
+		f[0] = fstatus{errNoStat, nil}
 	} else {
-		for i := 0; i < n; i++ {
+		for i, name := range names {
 			var (
 				info os.FileInfo
 				err  error
 			)
-			if names == nil || names[i] == "-" || names[i] == "" {
+			if name == "-" || name == "" {
 				info, err = os.Stdin.Stat()
 			} else {
-				info, err = os.Stat(names[i])
+				info, err = os.Stat(name)
 			}
-			f[i] = &fstatus{err, info}
+			f[i] = fstatus{err, info}
 		}
 	}
-
 	return f
 }
 
-func findNumberWidth(n int, f []*fstatus) int {
+func findNumberWidth(f []fstatus) int {
 	width := 1
 
-	if 0 < n && f[0].failed != errNoStat {
+	if 0 < len(f) && f[0].failed != errNoStat {
 		minWidth := 1
 		reg := int64(0)
 
-		for i := 0; i < n; i++ {
-			if f[i].failed == nil {
-				if f[i].stat.Mode().IsRegular() {
-					reg += f[i].stat.Size()
+		for _, fs := range f {
+			if fs.failed == nil {
+				if fs.stat.Mode().IsRegular() {
+					reg += fs.stat.Size()
 				} else {
 					minWidth = 7
 				}
 			}
 		}
 
-		for ; 10 < reg; reg /= 10 {
+		for ; 10 <= reg; reg /= 10 {
 			width++
 		}
 
@@ -252,58 +262,53 @@ func findNumberWidth(n int, f []*fstatus) int {
 
 func writeCounts(lines, words, chars, numBytes, lineLength int64, fname string) {
 
-	const fmtIntSp = " %*d"
+	const fmtSpInt = " %*d"
 	fmtInt := "%*d"
 
 	if *printLines {
 		fmt.Printf(fmtInt, numberWidth, lines)
-		fmtInt = fmtIntSp
+		fmtInt = fmtSpInt
 	}
 	if *printWords {
 		fmt.Printf(fmtInt, numberWidth, words)
-		fmtInt = fmtIntSp
+		fmtInt = fmtSpInt
 	}
 	if *printChars {
 		fmt.Printf(fmtInt, numberWidth, chars)
-		fmtInt = fmtIntSp
+		fmtInt = fmtSpInt
 	}
 	if *printBytes {
 		fmt.Printf(fmtInt, numberWidth, numBytes)
-		fmtInt = fmtIntSp
+		fmtInt = fmtSpInt
 	}
 	if *printLineLength {
 		fmt.Printf(fmtInt, numberWidth, lineLength)
-		fmtInt = fmtIntSp
 	}
 	fmt.Printf(" %s\n", fname)
 }
 
-func wcFile(name string, status *fstatus) int {
+func wcFile(name string, status fstatus) int {
 	if name == "" || name == "-" {
-		if !ttyname.IsAtty(os.Stdin.Fd()) {
-			return wc(os.Stdin, -1, status)
-		}
-	} else {
-		fi, err := os.Open(name)
-		if err != nil && err == err.(*os.PathError) {
-			fatal.Printf("%s No such file or directory\n", name)
-			return 1
-		}
-
-		ok := wc(fi, 0, status)
-		if err := fi.Close(); err != nil {
-			return 1
-		}
-		return ok
+		return wc(os.Stdin, -1, status)
 	}
-	// Unreachable.
-	return 1
+	fi, err := os.Open(name)
+	if _, ok := err.(*os.PathError); ok {
+		print("%s", err.Error())
+		return 1
+	}
+
+	ok := wc(fi, 0, status)
+	if err := fi.Close(); err != nil {
+		print("%v", err)
+		return 1
+	}
+	return ok
 }
 
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "%s", Help)
-		os.Exit(1)
+		os.Exit(0)
 	}
 	flag.Parse()
 
@@ -315,11 +320,9 @@ func main() {
 		os.Exit(0)
 	}
 
-	if !(*printBytes || *printChars || *printLines || *printWords || *printLineLength) {
-		*printLines = true
-		*printBytes = true
-		*printWords = true
-	}
+	*printLines = !(*printBytes || *printChars || *printLines || *printWords || *printLineLength)
+	*printBytes = *printLines
+	*printWords = *printBytes
 
 	// This is a gross attempt to simulate this...
 	// (print_lines + print_words + print_chars +
@@ -331,89 +334,72 @@ func main() {
 	// which is a much smaller set of conditions to check
 	//
 	// 1 flag and it's --files0-from
-	if (flag.NFlag() == 1 && *filesFrom == "" && *tabWidth == 8) ||
+	printOne = ((flag.NFlag() == 1 && *filesFrom == "" && *tabWidth == 8) ||
 		// 2 flags and one's *filesFrom OR *tabWidth
 		(flag.NFlag() == 2 && (*filesFrom != "" || *tabWidth != 8)) ||
 		// 3 flags and two are *filesFrom AND *tabWidth
-		(flag.NFlag() == 3 && *filesFrom != "" && *tabWidth != 8) {
-
-		printOne = true
-	}
+		(flag.NFlag() == 3 && *filesFrom != "" && *tabWidth != 8))
 
 	var (
-		ok         = 0           // Return status.
+		ok         int           // Return status.
 		files      = flag.Args() // List of files.
 		numFiles   = len(files)  // Number of files to wc.
 		reasonable = true        // Can we read file list into memory?
-		stdin      = true        // Are we reading from stdin?
 		size       int64
 	)
 
 	if *filesFrom != "" {
 		// Cannot specify files with --files0-from.
 		if flag.NArg() > 0 {
-			fatal.Fatalln("file operands cannot be combined with --files0-from")
+			fatal("file operands cannot be combined with --files0-from")
 		}
 
 		// --files0-from is small enough to fit into RAM.
 		if reasonable, size = isReasonable(*filesFrom); reasonable {
 			files, numFiles = getFileList(*filesFrom, size)
-			stdin = false
 		}
 	}
 
-	fs := getFileStatus(numFiles, files)
-	numberWidth = findNumberWidth(numFiles, fs)
+	fs := getFileStatus(files)
+	numberWidth = findNumberWidth(fs)
 
-	if !reasonable {
-		var (
-			file *os.File
-			err  error
-		)
+	if reasonable {
+		for i, file := range files {
+			ok ^= wcFile(file, fs[i])
+		}
+	} else {
+		var err error
 
-		file = os.Stdin
+		file := os.Stdin
 		if *filesFrom != "-" {
 			file, err = os.Open(*filesFrom)
 		}
 
 		if err != nil {
-			fatal.Fatalf("cannot open: %s\n", *filesFrom)
+			fatal("cannot open %q for reading: No such file or directory", *filesFrom)
 		}
 		defer file.Close()
 
-		r := bufio.NewReader(file)
 		i := 0
-		for {
+		for r := bufio.NewReader(file); ; i++ {
 			fname, err := r.ReadString(NullByte)
 			if err != nil {
 				if err != io.EOF && i < 1 {
-					fatal.Fatalln(err)
+					fatal("%v", err)
 				}
 				break
 			}
 
-			if len(fname) > 1 {
-				// Trim trailing null-byte.
-				if fname[len(fname)-1] == NullByte {
-					fname = fname[:len(fname)-1]
-				}
+			// Trim trailing null-byte.
+			if len(fname) > 1 && fname[len(fname)-1] == NullByte {
+				fname = fname[:len(fname)-1]
 			} else {
-				log.Fatalf("invalid zero-length file name at position: %d\n", i)
+				fatal("invalid zero-length file name at position: %d", i)
 			}
 
-			ok ^= wcFile(fname, nil)
-			i++
+			ok ^= wcFile(fname, fstatus{})
 		}
-
 		numFiles = i
-	} else {
-		if stdin { // We're reading from Stdin.
-			ok ^= wcFile("", fs[0])
-		} else {
-			for i, v := range files {
-				ok ^= wcFile(v, fs[i])
-			}
-		}
 	}
 
 	if numFiles > 1 {

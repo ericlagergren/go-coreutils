@@ -34,7 +34,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func wc(file *os.File, cur int64, status *fstatus) int {
+func wc(file *os.File, cur int64, status fstatus) int {
 	// Our temp number of lines, words, chars, and bytes
 	var (
 		lines      int64
@@ -42,10 +42,8 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 		chars      int64
 		numBytes   int64
 		lineLength int64
-		linePos    int64
-		inWord     int64
 
-		buffer = make([]byte, BufferSize+1)
+		buffer [BufferSize + 1]byte
 
 		// Return value.
 		ok = 0
@@ -67,23 +65,20 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 
 			unix.Fadvise(int(file.Fd()), 0, 0, unix.FADV_SEQUENTIAL)
 			for {
-				n, err := file.Read(buffer)
-				if err != nil && err != io.EOF {
-					ok = 1
+				n, err := file.Read(buffer[:])
+				if err != nil {
+					if err != io.EOF {
+						ok = 1
+					}
 					break
 				}
-
 				numBytes += int64(n)
-
-				if err == io.EOF {
-					break
-				}
 			}
 		} else {
 			numBytes = status.stat.Size()
 			end := numBytes
 			high := end - end%BufferSize
-			if cur <= 0 {
+			if cur < 0 {
 				cur, _ = file.Seek(0, os.SEEK_CUR)
 			}
 			if 0 <= cur && cur < high {
@@ -97,28 +92,35 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 		// lines (or lines and bytes)
 	} else if !*printChars && !countComplicated {
 		for {
-			n, err := file.Read(buffer)
-			if err != nil && err != io.EOF {
-				ok = 1
+			n, err := file.Read(buffer[:])
+			if err != nil {
+				if err != io.EOF {
+					ok = 1
+				}
 				break
 			}
-
 			lines += count(buffer[:n], NewLineByte)
 			numBytes += int64(n)
-
-			if err == io.EOF {
-				break
-			}
 		}
 	} else {
+		var (
+			inWord  int64
+			linePos int64
+		)
 		for {
-			n, err := file.Read(buffer)
+			n, err := file.Read(buffer[:])
+			if err != nil {
+				if err != io.EOF {
+					ok = 1
+				}
+				break
+			}
+
 			numBytes += int64(n)
+			bp := 0
 
-			b := buffer[:n]
-
-			for len(b) > 0 {
-				r, s := utf8.DecodeRune(b)
+			for bp < n {
+				r, s := utf8.DecodeRune(buffer[bp:])
 
 				switch r {
 				case NewLine:
@@ -151,14 +153,7 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 				}
 
 				chars++
-				b = b[s:]
-			}
-
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				ok = 1
-				break
+				bp += s
 			}
 		}
 		if linePos > lineLength {
