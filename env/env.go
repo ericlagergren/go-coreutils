@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	Help = `
+	help = `
 	Usage: env [OPTION]... [-] [NAME=VALUE]... [COMMAND [ARG]...]
 Set each NAME to VALUE in the environment and run COMMAND.
 
@@ -44,9 +44,9 @@ Mandatory arguments to long options are mandatory for short options too.
 A mere - implies -i.  If no COMMAND, print the resulting environment.
 
 Report wc bugs to ericscottlagergren@gmail.com
-Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
+Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>
 `
-	Version = `env (Go coreutils) 1.0
+	version = `env (Go coreutils) 1.0
 Copyright (C) 2015 Eric Lagergren
 License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.
@@ -54,100 +54,108 @@ There is NO WARRANTY, to the extent permitted by law.
 `
 )
 
-const delim = "="
-
 var (
-	unset   = flag.StringP("unset", "u", "", "")
-	nullEol = flag.BoolP("null", "0", false, "")
-	ignore  = flag.BoolP("ignore-environment", "i", false, "")
-	version = flag.BoolP("version", "v", false, "")
+	unset   string
+	set     string
+	nullEol bool
+	ignore  bool
 
-	fatal = log.New(os.Stderr, "", log.Lshortfile)
-	// fatal = log.New(os.Stderr, "", 0)
+	// fatal = log.New(os.Stderr, "", log.Lshortfile)
+	fatal = log.New(os.Stderr, "", 0)
 
 	env = os.Environ()
 )
 
 // Run a command, waiting for it to finish. Will first run CMD's path;
 // failing that, will lookup the path and attempt to do the same.
-func execvp(cmd *exec.Cmd) error {
+func execvp(cmd exec.Cmd) error {
 	if err := cmd.Start(); err == nil {
 
 		// Wait for command to finish
 		return cmd.Wait()
 
-	} else {
-
-		// Didn't work? Search for the executable's path
-		path, err := exec.LookPath(cmd.Path)
-		if err != nil {
-			return err
-		}
-
-		// Reset our path
-		cmd.Path = path
-
-		// Try again with the executable found in $PATH
-		err = cmd.Start()
-		if err != nil {
-			return err
-		}
-
-		return cmd.Wait()
 	}
+
+	// Didn't work? Search for the executable's path
+	path, err := exec.LookPath(cmd.Path)
+	if err != nil {
+		return err
+	}
+
+	// Reset our path
+	cmd.Path = path
+
+	// Try again with the executable found in $PATH
+	if err = cmd.Start(); err != nil {
+		return err
+	}
+	return cmd.Wait()
+}
+
+func parseFlags(argv []string) (args []string) {
+	for i := 1; i < len(argv); i++ {
+		switch v := argv[i]; v {
+		case "-i", "--ignore-environment":
+			ignore = true
+		case "-0", "--null":
+			nullEol = true
+		case "-u", "--unset":
+			i++
+			unset = argv[i]
+		case "-s", "--set":
+			i++
+			set = argv[i]
+		case "--help":
+			fmt.Fprintf(os.Stderr, "%s", help)
+			os.Exit(1)
+		case "--version":
+			fmt.Printf("%s", version)
+			os.Exit(0)
+		default:
+			args = append(args, v)
+		}
+	}
+	return args
 }
 
 func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "%s", Help)
-		os.Exit(1)
-	}
-	flag.Parse()
+	args := parseFlags(os.Args)
 
-	if *version {
-		fmt.Printf("%s", Version)
-		os.Exit(0)
+	if unset != "" {
+		os.Unsetenv(unset)
 	}
 
-	if *unset != "" {
-		os.Unsetenv(*unset)
-	}
-
-	cmd := new(exec.Cmd)
-	cmd.Env = env
+	cmd := exec.Cmd{Env: env}
 
 	// Check for "-" as an argument, because it means the same as "-i"
 	if flag.Arg(0) == "-" {
-		cmd.Env = make([]string, 0)
+		cmd.Env = []string{}
 	}
 
-	for i, arg := range flag.Args() {
-		if strings.Index(arg, delim) > 0 {
+	for i, arg := range args {
+		if strings.Index(arg, "=") > 0 {
 			cmd.Env = append(cmd.Env, arg)
 		} else if arg != "-" {
-			if *nullEol {
+			if nullEol {
 				fatal.Fatalln("cannot specify --null (-0) with command")
 			}
 
 			cmd.Path = arg
 
-			cmd.Args = append(cmd.Args, flag.Args()[i:]...)
+			cmd.Args = append(cmd.Args, args[i:]...)
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 
-			err := execvp(cmd)
-			if err != nil {
+			if err := execvp(cmd); err != nil {
 				fatal.Fatalln(err)
 			}
 			return
 		}
-
-		i++
 	}
 
 	eol := '\n'
-	if *nullEol {
+	if nullEol {
 		eol = '\x00'
 	}
 
