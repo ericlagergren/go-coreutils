@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	flag "github.com/EricLagerg/pflag"
+	flag "github.com/EricLagergren/pflag"
 )
 
 var install = &Command{

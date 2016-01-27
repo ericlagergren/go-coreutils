@@ -30,7 +30,7 @@ import (
 	"os"
 	"syscall"
 
-	k32 "github.com/EricLagerg/go-gnulib/windows"
+	k32 "github.com/EricLagergren/go-gnulib/windows"
 	flag "github.com/ogier/pflag"
 )
 
@@ -57,7 +57,7 @@ Examples:
   cat        Copy standard input to standard output.
 
 Report wc bugs to ericscottlagergren@gmail.com
-Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
+Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>
 `
 	Version = `Go cat (Go coreutils) 2.0
 Copyright (c) 2014-2015 Eric Lagergren

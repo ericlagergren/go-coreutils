@@ -16,7 +16,7 @@ Force changed blocks to disk, update the super block.
       --version  output version information and exit
 
 Report wc bugs to ericscottlagergren@gmail.com
-Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
+Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>
 `
 	Version = `sync (coreutils) 1
 Copyright (C) 2015 Eric Lagergren.

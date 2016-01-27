@@ -58,7 +58,7 @@ AUTHOR
 
 REPORTING BUGS
        Report wc bugs to ericscottlagergren@gmail.com
-       Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
+       Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>
 
 COPYRIGHT
        Go pwd - Print the full filename of the current working directory.

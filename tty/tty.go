@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EricLagerg/go-gnulib/ttyname"
+	"github.com/EricLagergren/go-gnulib/ttyname"
 	flag "github.com/ogier/pflag"
 )
 
@@ -44,7 +44,7 @@ Print the file name of the terminal connected to standard input.
       --version  output version information and exit
 
 Report uname bugs to ericscottlagergren@gmail.com
-Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>`
+Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>`
 )
 
 var (

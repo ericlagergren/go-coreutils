@@ -8,14 +8,14 @@ that aims to be a drop-in, cross-platform replacement.
 
 **It's currently under development.**
 
-Because it imports from `github.com/EricLagerg/go-gnulib`, and I'm constantly
+Because it imports from `github.com/EricLagergren/go-gnulib`, and I'm constantly
 refactoring, parts could break from day-to-day.
 
 I'd recommend running `go get -u ...` before you file a bug report!
 
 *Pull requests are more than welcome.*
 
-Also, see https://www.github.com/EricLagerg/go-gnulib for a similar project that this project depends on.
+Also, see https://www.github.com/EricLagergren/go-gnulib for a similar project that this project depends on.
 
 ### Completed:
 
@@ -68,14 +68,14 @@ the GPL (e.g., `xxd` was public domain).
 ## REQUIRES:
 
 (Depends on platform and command...)
-- go get github.com/EricLagerg/ostypes
+- go get github.com/EricLagergren/ostypes
 - go get golang.org/x/sys/unix
 - go get github.com/ogier/pflag
-- go get github.com/EricLagerg/go-gnulib/ttyname
-- go get github.com/EricLagerg/go-gnulib/sysinfo
-- go get github.com/EricLagerg/go-gnulib/posix
-- go get github.com/EricLagerg/go-gnulib/general
-- go get github.com/EricLagerg/go-gnulib/login
+- go get github.com/EricLagergren/go-gnulib/ttyname
+- go get github.com/EricLagergren/go-gnulib/sysinfo
+- go get github.com/EricLagergren/go-gnulib/posix
+- go get github.com/EricLagergren/go-gnulib/general
+- go get github.com/EricLagergren/go-gnulib/login
 
 ### LICENSE:
 

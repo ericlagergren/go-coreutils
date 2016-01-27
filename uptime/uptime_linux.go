@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/EricLagerg/go-gnulib/stdlib"
-	"github.com/EricLagerg/go-gnulib/utmp"
+	"github.com/EricLagergren/go-gnulib/stdlib"
+	"github.com/EricLagergren/go-gnulib/utmp"
 
 	flag "github.com/ogier/pflag"
 )
@@ -29,7 +29,7 @@ If FILE is not specified, use`
       --version  output version information and exit
 
 Report wc bugs to ericscottlagergren@gmail.com
-Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
+Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>
 `
 
 	Version = `

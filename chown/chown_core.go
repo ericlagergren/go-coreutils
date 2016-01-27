@@ -157,3 +157,7 @@ func RestrictedChown(cwdFd int, file string, origStat os.FileInfo, uid, gid, req
 func sameFile(st1, st2 *syscall.Stat_t) bool {
 	return st1.Dev == st2.Dev && st1.Ino == st2.Ino
 }
+
+func ChangeFileOwner(uid, gid, reqUid, reqGid uint32, chopt ChownOption) bool {
+
+}

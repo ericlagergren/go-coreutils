@@ -29,7 +29,7 @@ import (
 	"fmt"
 	"os"
 
-	flag "github.com/EricLagerg/pflag"
+	flag "github.com/EricLagergren/pflag"
 )
 
 const (

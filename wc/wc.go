@@ -31,7 +31,9 @@ import (
 	"os"
 	"unicode"
 
-	"github.com/EricLagerg/go-gnulib/sysinfo"
+	"github.com/davecheney/profile"
+
+	"github.com/EricLagergren/go-gnulib/sysinfo"
 
 	flag "github.com/ogier/pflag"
 )
@@ -66,17 +68,10 @@ the following order: newline, word, character, byte, maximum line length.
   -v, --version  output  version information and exit
 
 Report wc bugs to ericscottlagergren@gmail.com
-Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
+Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>
 `
-	NewLine     = rune('\n')
-	Return      = rune('\r')
-	FormFeed    = rune('\f')
-	HorizTab    = rune('\t')
-	VertTab     = rune('\v')
-	Space       = rune(' ')
-	NewLineByte = 10
-	NullByte    = 0x00
-	BufferSize  = (64 * 1024)
+	NullByte   = 0x00
+	BufferSize = (64 * 1024)
 )
 
 var (
@@ -131,23 +126,6 @@ type fstatus struct {
 	stat   os.FileInfo
 }
 
-func count(s []byte, delim byte) int64 {
-	count := int64(0)
-	i := 0
-	for i < len(s) {
-		if s[i] != delim {
-			o := bytes.IndexByte(s[i:], delim)
-			if o < 0 {
-				break
-			}
-			i += o
-		}
-		count++
-		i++
-	}
-	return count
-}
-
 func min(a, b int64) int64 {
 	if a > b {
 		return b
@@ -158,12 +136,12 @@ func min(a, b int64) int64 {
 func isReasonable(name string) (bool, int64) {
 	// Immediately catch Stdin.
 	if name == "-" {
-		return false, -1
+		return false, 0
 	}
 
 	info, err := os.Stat(name)
 	if err != nil {
-		return false, -1
+		return false, 0
 	}
 
 	return info.Mode().IsRegular() &&
@@ -187,8 +165,7 @@ func getFileList(name string, size int64) ([]string, int) {
 	var list []string
 
 	count := 0
-	i := 0
-	for i < len(buf) {
+	for i := 0; i < len(buf); i++ {
 		if buf[i] != NullByte {
 			o := bytes.IndexByte(buf[i:], NullByte)
 			if o < 0 {
@@ -198,7 +175,6 @@ func getFileList(name string, size int64) ([]string, int) {
 			i += o
 		}
 		count++
-		i++
 	}
 	return list, count
 }
@@ -312,17 +288,22 @@ func main() {
 	}
 	flag.Parse()
 
+	p := profile.Start(profile.CPUProfile)
+
 	if *constVersion {
 		fmt.Printf("Unicode Version: %s\n", unicode.Version)
 		os.Exit(0)
-	} else if *version {
+	}
+	if *version {
 		fmt.Printf("%s\n", Version)
 		os.Exit(0)
 	}
 
-	*printLines = !(*printBytes || *printChars || *printLines || *printWords || *printLineLength)
-	*printBytes = *printLines
-	*printWords = *printBytes
+	if !(*printBytes || *printChars || *printLines || *printWords || *printLineLength) {
+		*printLines = true
+		*printBytes = true
+		*printWords = true
+	}
 
 	// This is a gross attempt to simulate this...
 	// (print_lines + print_words + print_chars +
@@ -333,12 +314,14 @@ func main() {
 	// we check the number of set flags and the remaining non-'print' flags
 	// which is a much smaller set of conditions to check
 	//
-	// 1 flag and it's --files0-from
-	printOne = ((flag.NFlag() == 1 && *filesFrom == "" && *tabWidth == 8) ||
-		// 2 flags and one's *filesFrom OR *tabWidth
-		(flag.NFlag() == 2 && (*filesFrom != "" || *tabWidth != 8)) ||
-		// 3 flags and two are *filesFrom AND *tabWidth
-		(flag.NFlag() == 3 && *filesFrom != "" && *tabWidth != 8))
+	//	I could just use a loop, but this also removes a branch soooo...
+	printOne =
+		// 1 flag and it's not *filesFrom OR *tabWidth
+		((flag.NFlag() == 1 && *filesFrom == "" && *tabWidth == 8) ||
+			// 2 flags and one is *filesFrom OR *tabWidth
+			(flag.NFlag() == 2 && (*filesFrom != "" || *tabWidth != 8)) ||
+			// 3 flags and two are *filesFrom AND *tabWidth
+			(flag.NFlag() == 3 && *filesFrom != "" && *tabWidth != 8))
 
 	var (
 		ok         int           // Return status.
@@ -380,26 +363,28 @@ func main() {
 		}
 		defer file.Close()
 
-		i := 0
-		for r := bufio.NewReader(file); ; i++ {
-			fname, err := r.ReadString(NullByte)
-			if err != nil {
-				if err != io.EOF && i < 1 {
-					fatal("%v", err)
-				}
-				break
+		s := bufio.NewScanner(file)
+		s.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+			if atEOF && len(data) == 0 {
+				return 0, nil, nil
 			}
-
-			// Trim trailing null-byte.
-			if len(fname) > 1 && fname[len(fname)-1] == NullByte {
-				fname = fname[:len(fname)-1]
-			} else {
-				fatal("invalid zero-length file name at position: %d", i)
+			if i := bytes.IndexByte(data, NullByte); i >= 0 {
+				// We have a full newline-terminated line.
+				return i + 1, dropNullByte(numFiles, data[0:i]), nil
 			}
-
-			ok ^= wcFile(fname, fstatus{})
+			// If we're at EOF, we have a final, non-terminated line. Return it.
+			if atEOF {
+				return len(data), dropNullByte(numFiles, data), nil
+			}
+			// Request more data.
+			return 0, nil, nil
+		})
+		for ; s.Scan(); numFiles++ {
+			ok ^= wcFile(s.Text(), fstatus{})
 		}
-		numFiles = i
+		if err := s.Err(); err != nil {
+			fatal("%v", err)
+		}
 	}
 
 	if numFiles > 1 {
@@ -407,6 +392,16 @@ func main() {
 			totalChars, totalBytes, maxLineLength, "total")
 	}
 
+	p.Stop()
+
 	// Return status.
 	os.Exit(ok)
+}
+
+func dropNullByte(i int, data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == NullByte {
+		return data[0 : len(data)-1]
+	}
+	fatal("invalid zero-length file name at position: %d", i)
+	return data
 }

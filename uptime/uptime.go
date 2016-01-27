@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/EricLagerg/go-gnulib/utmp"
+	"github.com/EricLagergren/go-gnulib/utmp"
 
 	flag "github.com/ogier/pflag"
 )

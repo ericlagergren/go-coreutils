@@ -16,7 +16,7 @@ Repeatedly output a line with all specified STRING(s), or 'y'.
       --version  output version information and exit
 
 Report yes bugs to ericscottlagergren@gmail.com
-Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
+Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>
 `
 	Version = `yes (Go coreutils) 1.0
 Copyright (C) 2015 Eric Lagergren.

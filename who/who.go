@@ -40,8 +40,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/EricLagerg/go-gnulib/ttyname"
-	"github.com/EricLagerg/go-gnulib/utmp"
+	"github.com/EricLagergren/go-gnulib/ttyname"
+	"github.com/EricLagergren/go-gnulib/utmp"
 	flag "github.com/ogier/pflag"
 )
 

@@ -11,7 +11,7 @@
 
 - clone https://www.github.com/coreutils/coreutils and work side-by-side
 - get familiar with https://www.github.com/coreutils/gnulib
-- get familiar with https://www.github.com/EricLagerg/go-gnulib
+- get familiar with https://www.github.com/EricLagergren/go-gnulib
 
 ## Licensing
 

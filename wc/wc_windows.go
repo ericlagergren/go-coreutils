@@ -99,7 +99,18 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 				break
 			}
 
-			lines += count(buffer[:n], NewLineByte)
+			// Go doesn't inline this sooo...
+			for i := 0; i < n; i++ {
+				if buffer[i] != '\n' {
+					o := bytes.IndexByte(buffer[i:n], '\n')
+					if o < 0 {
+						break
+					}
+					i += o
+				}
+				lines++
+			}
+
 			numBytes += int64(n)
 
 			if err == io.EOF {
@@ -117,26 +128,26 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 				r, s := utf8.DecodeRune(b)
 
 				switch r {
-				case NewLine:
+				case '\n':
 					lines++
 					fallthrough
-				case Return:
+				case '\r':
 					fallthrough
-				case FormFeed:
+				case '\f':
 					if linePos > lineLength {
 						lineLength = linePos
 					}
 					linePos = 0
 					words += inWord
 					inWord = 0
-				case HorizTab:
+				case '\t':
 					linePos += *tabWidth - (linePos % *tabWidth)
 					words += inWord
 					inWord = 0
-				case Space:
+				case ' ':
 					linePos++
 					fallthrough
-				case VertTab:
+				case '\v':
 					words += inWord
 					inWord = 0
 				default:

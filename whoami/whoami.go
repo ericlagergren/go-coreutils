@@ -39,7 +39,7 @@ Same as id -un.
       --version  output version information and exit
 
 Report whoami bugs to ericscottlagergren@gmail.com
-Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>`
+Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>`
 
 	Version = `whoami (Go coreutils) 1.0
 Copyright (C) 2015 Eric Lagergren

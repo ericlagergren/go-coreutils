@@ -26,7 +26,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/EricLagerg/go-gnulib/login"
+	"github.com/EricLagergren/go-gnulib/login"
 
 	flag "github.com/ogier/pflag"
 )
@@ -39,7 +39,7 @@ Print the name of the current user.
       --version  output version information and exit
 
 Report logname bugs to ericscottlagergren@gmail.com
-Go coreutils home page: <https://www.github.com/EricLagerg/go-coreutils/>
+Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>
 `
 
 	VERSION = `logname (Go coreutils) 1.0

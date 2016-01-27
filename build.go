@@ -9,7 +9,7 @@ import (
 	"sync"
 	"text/template"
 
-	flag "github.com/EricLagerg/pflag"
+	flag "github.com/EricLagergren/pflag"
 )
 
 var (

@@ -26,6 +26,7 @@
 package main
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"unicode"
@@ -99,7 +100,18 @@ func wc(file *os.File, cur int64, status fstatus) int {
 				}
 				break
 			}
-			lines += count(buffer[:n], NewLineByte)
+
+			// Go doesn't inline this sooo...
+			for i := 0; i < n; i++ {
+				if buffer[i] != '\n' {
+					o := bytes.IndexByte(buffer[i:n], '\n')
+					if o < 0 {
+						break
+					}
+					i += o
+				}
+				lines++
+			}
 			numBytes += int64(n)
 		}
 	} else {
@@ -117,37 +129,40 @@ func wc(file *os.File, cur int64, status fstatus) int {
 			}
 
 			numBytes += int64(n)
-			bp := 0
 
-			for bp < n {
+			for bp := 0; bp < n; {
 				r, s := utf8.DecodeRune(buffer[bp:])
 
 				switch r {
-				case NewLine:
+				case '\n':
 					lines++
 					fallthrough
-				case Return:
+				case '\r':
 					fallthrough
-				case FormFeed:
+				case '\f':
 					if linePos > lineLength {
 						lineLength = linePos
 					}
 					linePos = 0
 					words += inWord
 					inWord = 0
-				case HorizTab:
+				case '\t':
 					linePos += *tabWidth - (linePos % *tabWidth)
 					words += inWord
 					inWord = 0
-				case Space:
+				case ' ':
 					linePos++
 					fallthrough
-				case VertTab:
+				case '\v':
 					words += inWord
 					inWord = 0
 				default:
 					if unicode.IsPrint(r) {
 						linePos++
+						if unicode.IsSpace(r) {
+							words += inWord
+							inWord = 0
+						}
 						inWord = 1
 					}
 				}
