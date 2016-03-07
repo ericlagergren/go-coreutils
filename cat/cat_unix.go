@@ -8,19 +8,20 @@ import (
 	"os"
 	"syscall"
 
-	k32 "github.com/EricLagergren/go-gnulib/windows"
-	flag "github.com/ogier/pflag"
+	"github.com/EricLagergren/go-coreutils/internal/flag"
+
+	"golang.org/x/sys/unix"
 )
 
 func main() {
 	var ok int // return status
 
-	outHandle := syscall.Handle(os.Stdout.Fd())
-	outType, err := syscall.GetFileType(outHandle)
+	outStat, err := os.Stdout.Stat()
 	if err != nil {
 		fatal.Fatalln(err)
 	}
-	outBsize := 4096
+	outReg := outStat.Mode().IsRegular()
+	outBsize := int(outStat.Sys().(*syscall.Stat_t).Blksize)
 
 	// catch (./cat) < /etc/group
 	var args []string
@@ -33,7 +34,6 @@ func main() {
 	// the main loop
 	var file *os.File
 	for _, arg := range args {
-		var inStat os.FileInfo
 
 		if arg == "-" {
 			file = os.Stdin
@@ -42,49 +42,34 @@ func main() {
 			if err != nil {
 				fatal.Fatalln(err)
 			}
-
-			inStat, err = file.Stat()
-			if err != nil {
-				fatal.Fatalln(err)
-			}
-			if inStat.IsDir() {
-				fatal.Printf("%s: Is a directory\n", file.Name())
-			}
 		}
 
-		inHandle := syscall.Handle(file.Fd())
-		inBsize := 4096
+		inStat, err := file.Stat()
+		if err != nil {
+			fatal.Fatalln(err)
+		}
+		if inStat.IsDir() {
+			fatal.Printf("%s: Is a directory\n", file.Name())
+		}
+		inBsize := int(inStat.Sys().(*syscall.Stat_t).Blksize)
 
-		// See http://stackoverflow.com/q/29360969/2967113
-		// for why this differs from the Unix versions.
-		//
+		// prefetch! prefetch! prefetch!
+		unix.Fadvise(int(file.Fd()), 0, 0, unix.FADV_SEQUENTIAL)
+
 		// Make sure we're not catting a file to itself,
 		// provided it's a regular file. Catting a non-reg
-		// file to itself is cool, e.g. cat file > file
-		if outType == syscall.FILE_TYPE_DISK {
-
-			inPath := make([]byte, syscall.MAX_PATH)
-			outPath := make([]byte, syscall.MAX_PATH)
-
-			err = k32.GetFinalPathNameByHandleA(inHandle, inPath, 0)
-			if err != nil {
-				fatal.Fatalln(err)
-			}
-
-			err = k32.GetFinalPathNameByHandleA(outHandle, outPath, 0)
-			if err != nil {
-				fatal.Fatalln(err)
-			}
-
-			if string(inPath) == string(outPath) {
-				if n, _ := file.Seek(0, os.SEEK_CUR); n < inStat.Size() {
-					fatal.Fatalf("%s: input file is output file\n", file.Name())
-				}
+		// file to itself is cool.
+		// e.g. cat file > file
+		if outReg && os.SameFile(outStat, inStat) {
+			if n, _ := file.Seek(0, os.SEEK_CUR); n < inStat.Size() {
+				fatal.Fatalf("%s: input file is output file\n", file.Name())
 			}
 		}
 
 		if simple {
-			outBuf := bufio.NewWriterSize(os.Stdout, 4096)
+			// Select larger block size
+			size := max(inBsize, outBsize)
+			outBuf := bufio.NewWriterSize(os.Stdout, size)
 			ok ^= simpleCat(file, outBuf)
 
 			// Flush because we don't have a chance to in

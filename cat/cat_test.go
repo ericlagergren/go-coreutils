@@ -1,27 +1,5 @@
 // +build linux
 
-/*
-	Go cat (test) - concatenate files and print on the standard output.
-	Copyright (c) 2014-2015 Eric Lagergren
-
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
-	Written by Eric Lagergren <ericscottlagergren@gmail.com>
-*/
-
 package main
 
 import (
@@ -34,7 +12,7 @@ import (
 	"testing"
 )
 
-var flist = []string{
+var flist = [...]string{
 	"test_files/lang_ru.txt",
 	"test_files/dict_en.txt",
 	"test_files/spaces_en.txt",
@@ -43,7 +21,7 @@ var flist = []string{
 
 var buf bytes.Buffer
 
-func TestCAT(t *testing.T) {
+func TestCat(t *testing.T) {
 
 	showNonPrinting = true
 	*nonPrint = true
@@ -70,7 +48,7 @@ func TestCAT(t *testing.T) {
 			t.Error(err)
 		}
 		if inStat.IsDir() {
-			t.Errorf("%s: Is a directory\n", file.Name())
+			t.Errorf("%s: is a directory\n", file.Name())
 		}
 
 		inBsize := int(inStat.Sys().(*syscall.Stat_t).Blksize)
@@ -115,5 +93,3 @@ func TestCAT(t *testing.T) {
 	}
 
 }
-
-func main() {}
