@@ -5,13 +5,32 @@ package main
 
 import (
 	"bufio"
+	"log"
 	"os"
-	"syscall"
 
 	"github.com/EricLagergren/go-coreutils/internal/flag"
 
 	"golang.org/x/sys/unix"
 )
+
+func bsize(info os.FileInfo) int {
+	stat, ok := info.Sys().(*unix.Stat_t)
+	if !ok {
+		log.Fatalln("cat: (bug) inf.Sys().(*unix.Stat_t) is false")
+	}
+	// (Taken from ioblksize.h)
+	// bufSize is determined by:
+	//
+	// for i in $(seq 0 10); do
+	//     bs=$((1024*2**$i))
+	//     printf "%7s=" $bs
+	//     timeout --foreground -sINT 2 \
+	//       dd bs=$bs if=/dev/zero of=/dev/null 2>&1 \
+	//         | sed -n 's/.* \([0-9.]* [GM]B\/s\)/\1/p'
+	// done
+	const bufSize = 128 * 1024
+	return max(bufSize, int(stat.Blksize))
+}
 
 func main() {
 	var ok int // return status
@@ -21,23 +40,18 @@ func main() {
 		fatal.Fatalln(err)
 	}
 	outReg := outStat.Mode().IsRegular()
-	outBsize := int(outStat.Sys().(*syscall.Stat_t).Blksize)
+	outBsize := bsize(outStat)
 
 	// catch (./cat) < /etc/group
-	var args []string
+	args := flag.Args()
 	if flag.NArg() == 0 {
 		args = []string{"-"}
-	} else {
-		args = flag.Args()
 	}
 
-	// the main loop
 	var file *os.File
 	for _, arg := range args {
-
-		if arg == "-" {
-			file = os.Stdin
-		} else {
+		file = os.Stdin
+		if arg != "-" {
 			file, err = os.Open(arg)
 			if err != nil {
 				fatal.Fatalln(err)
@@ -49,9 +63,9 @@ func main() {
 			fatal.Fatalln(err)
 		}
 		if inStat.IsDir() {
-			fatal.Printf("%s: Is a directory\n", file.Name())
+			fatal.Printf("%s: is a directory\n", file.Name())
 		}
-		inBsize := int(inStat.Sys().(*syscall.Stat_t).Blksize)
+		inBsize := bsize(inStat)
 
 		// prefetch! prefetch! prefetch!
 		unix.Fadvise(int(file.Fd()), 0, 0, unix.FADV_SEQUENTIAL)
@@ -66,10 +80,11 @@ func main() {
 			}
 		}
 
+		pageSize := os.Getpagesize()
 		if simple {
 			// Select larger block size
 			size := max(inBsize, outBsize)
-			outBuf := bufio.NewWriterSize(os.Stdout, size)
+			outBuf := bufio.NewWriterSize(os.Stdout, size+pageSize-1)
 			ok ^= simpleCat(file, outBuf)
 
 			// Flush because we don't have a chance to in
@@ -84,7 +99,7 @@ func main() {
 			// due to new tests for newlines.
 			size := outBsize - 1 + inBsize*4 + 20
 			outBuf := bufio.NewWriterSize(os.Stdout, size)
-			inBuf := make([]byte, inBsize+1)
+			inBuf := make([]byte, inBsize+pageSize-1)
 			ok ^= cat(file, inBuf, outBuf)
 		}
 

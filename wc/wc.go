@@ -20,7 +20,7 @@ import (
 
 const (
 	nullByte   = 0x00
-	bufferSize = (64 * 1024)
+	bufferSize = (128 * 1024)
 )
 
 var (
