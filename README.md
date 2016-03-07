@@ -19,12 +19,12 @@ Also, see https://www.github.com/EricLagergren/go-gnulib for a similar project t
 
 ### Completed:
 
-16/100
+17/100
 
 | Utility | Completeness   | Cross Platform      | Need Refactor|
 |:--------|:---------------|:--------------------|:-------------|
 | cat     | 100%           | Yes (Unix/Windows)  | No           |
-| chown   | 10% (* see note #1) | No             | Yes (-R)     |
+| chown   | 0% (* see note #1) | No             | Yes (-R)     |
 | env     | 100%           | Yes (Unix/Windows)  | No           |
 | false   | 100%           | Yes (Unix/Windows)  | No           |
 | logname | 100%           | No                  | No           |
@@ -51,20 +51,46 @@ Also, see https://www.github.com/EricLagergren/go-gnulib for a similar project t
 
 ### Information:
 
-These utilities should be nearly identical to GNU's coreutils, and should have
-*relatively* the same speed.
+#### Performance:
 
-For example, `wc.go` counts chars in 550MB file in < 15sec and `wc.c` in ~11sec
-on an Intel core i3 2.66ghz. (Running Debian 3.2.63-2+deb7u1 x86_64.)
+Obviously there's some things Go can do better (parallelism and concurrency),
+but for the most part these tools should have nearly the same speed,
+with Go being slightly slower.
 
-`xxd.go` is actually much faster than the native `xxd` implementation found
-on most *nix machines -- try it out!
+```
+eric@archbox ~/gopath/src/github.com/EricLagergren/go-coreutils/wc $ time ./wc_go -lwmc one_gigabyte_file.txt 
+  32386258  146084896 1182425560 1183778772 one_gigabyte_file.txt
 
-It (as a whole) is licensed under the GPLv3 because it's mostly a
-transliteraiton of GNU's coreutils, which are licensed under the GPL.
+real  0m25.206s
+user  0m24.900s
+sys   0m0.313s
+eric@archbox ~/gopath/src/github.com/EricLagergren/go-coreutils/wc $ time wc_c -lwmc one_gigabyte_file.txt 
+  32386258  146084896 1182425560 1183778772 one_gigabyte_file.txt
 
-However, all parts are/can be licensed individually, as **not** all are under
-the GPL (e.g., `xxd` was public domain).
+real  0m22.841s
+user  0m22.570s
+sys   0m0.257s
+```
+
+#### Behavior:
+
+These utilities should be nearly identical to GNU's coreutils.
+
+Since parsing the output of shell commands isn't uncommon (even if
+it *is* bad behavior), most of the commands should have output that
+is nearly identical to the original GNU commands.
+
+Do note that sometimes the results could differ a little for select commands.
+
+For example, GNU's `wc` utility relies on the current locale to determine
+whether it should parse multi-byte characters or not.
+
+The Go version, on the other hand, uses the `unicode/utf8` package
+which natively detects multi-byte sequences. The trade-off is this: the
+Go version is technically more correct, while the C version is faster.
+
+Our implementation of `xxd` is actually much faster than the native `xxd`
+implementation found on most *nix machines -- try it out!
 
 ## REQUIRES:
 
@@ -81,7 +107,7 @@ the GPL (e.g., `xxd` was public domain).
 ### LICENSE:
 
 ```
-   Copyright (C) 2014-2015 Eric Lagergren
+   Copyright (C) 2014-2016 Eric Lagergren
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -94,5 +120,11 @@ the GPL (e.g., `xxd` was public domain).
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
+
+#### License subnotes:
+It (as a whole) is licensed under the GPLv3 because it's mostly a
+transliteration of GNU's coreutils, which are licensed under the GPLv3.
+
+However, certain parts have their own licenses (e.g., `xxd` is public domain).
