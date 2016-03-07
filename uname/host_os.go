@@ -1,4 +1,5 @@
+// +build ostypes
+
 package main
 
-// HostOS will be overwritten with the go:generate command.
-const HostOS = Unknown
+var hostOS = unknown

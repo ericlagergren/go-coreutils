@@ -514,6 +514,12 @@ var Usage = func() {
 	Bugs()
 }
 
+func DBE() {
+	PrintDefaults()
+	Bugs()
+	os.Exit(0)
+}
+
 var Version = func() {
 	fmt.Fprintf(os.Stdout, `%s (Go coreutils) %s
 Copyright (c) 2016 Eric Lagergren
@@ -526,7 +532,7 @@ There is NO WARRANTY, to the extent permitted by law.
 
 var Bugs = func() {
 	fmt.Printf(`
-Report %s bugs to eric@ericlagergren.com.com
+Report %s bugs to eric@ericlagergren.com
 Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>
 `, Program)
 }
@@ -673,7 +679,7 @@ func VarP(value Value, name, shorthand, usage string) {
 func (f *FlagSet) failf(format string, a ...interface{}) error {
 	err := fmt.Errorf(format, a...)
 	fmt.Fprintln(f.out(), err)
-	f.usage()
+	fmt.Fprintf(f.out(), "Try '%s --help' for more information.\n", f.name)
 	return err
 }
 

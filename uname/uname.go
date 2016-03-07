@@ -1,22 +1,5 @@
-/*
-   Go uname -- print system information
-
-   Copyright (c) 2014-2015  Eric Lagergren
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
-
-// Written by Eric Lagergren <ericscottlagergren@gmail.com>
+// Copyright (c) 2014-2016 Eric Lagergren
+// Use of this source code is governed by the GPL v3 or later.
 
 package main
 
@@ -25,52 +8,26 @@ import (
 	"log"
 	"os"
 
-	flag "github.com/ogier/pflag"
+	"github.com/EricLagergren/go-coreutils/internal/flag"
 )
 
 const (
-	Help = `Usage: uname [OPTION]...
-Print certain system information.  With no OPTION, same as -s.
-
-  -a, --all                print all information, in the following order,
-                             except omit -p and -i if unknown:
-  -s, --kernel-name        print the kernel name
-  -n, --nodename           print the network node hostname
-  -r, --kernel-release     print the kernel release
-  -v, --kernel-version     print the kernel version
-  -m, --machine            print the machine hardware name
-  -p, --processor          print the processor type or "unknown"
-  -i, --hardware-platform  print the hardware platform or "unknown"
-  -o, --operating-system   print the operating system
-      --help     display this help and exit
-      --version  output version information and exit
-
-Report uname bugs to ericscottlagergren@gmail.com
-Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>`
-	Version = `Go uname (Go coreutils) 1.0
-Copyright (C) 2015 Eric Lagergren.
-License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
-This is free software: you are free to change and redistribute it.
-There is NO WARRANTY, to the extent permitted by law.
-
-Written by Eric Lagergren`
-
-	Unknown = "unknown"
-	ProcCPU = "/proc/cpuinfo"
-	MaxUint = ^printer(0)
+	unknown = "unknown"
+	procCPU = "/proc/cpuinfo"
+	maxUint = ^printer(0)
 )
 
 var (
-	all             = flag.BoolP("all", "a", false, "")
-	kernelName      = flag.BoolP("kernel-name", "s", false, "")
-	nodeName        = flag.BoolP("nodename", "n", false, "")
-	release         = flag.BoolP("kernel-release", "r", false, "")
-	kernelVersion   = flag.BoolP("kernel-version", "v", false, "")
-	machine         = flag.BoolP("machine", "m", false, "")
-	processor       = flag.BoolP("processor", "p", false, "")
-	hwPlatform      = flag.BoolP("hardware-platform", "i", false, "")
-	operatingSystem = flag.BoolP("operating-system", "o", false, "")
-	version         = flag.BoolP("version", "", false, "")
+	all = flag.BoolP("all", "a", false, `print all information, in the following order,
+                             except omit -p and -i if unknown:`)
+	kernelName      = flag.BoolP("kernel-name", "s", false, "print the kernel name")
+	nodeName        = flag.BoolP("nodename", "n", false, "print the network node hostname")
+	release         = flag.BoolP("kernel-release", "r", false, "print the kernel release")
+	version         = flag.BoolP("kernel-version", "v", false, "print the kernel version")
+	machine         = flag.BoolP("machine", "m", false, "print the machine hardware name")
+	processor       = flag.BoolP("processor", "p", false, "print the processor tyoe or \"unknown\"")
+	hwPlatform      = flag.BoolP("hardware-platform", "i", false, "print the hardware platform or \"unknown\"")
+	operatingSystem = flag.BoolP("operating-system", "o", false, "print the operating system")
 
 	fatal = log.New(os.Stderr, "", 0)
 )
@@ -79,14 +36,14 @@ type printer uint
 
 // Enumerated printing options.
 const (
-	PrintKernelName printer = 1 << iota
-	PrintNodeName
-	PrintKernelRelease
-	PrintKernelVersion
-	PrintMachine
-	PrintProcessor
-	PrintHardwarePlatform
-	PrintOperatingSystem
+	printKernelName printer = 1 << iota
+	printNodeName
+	printKernelRelease
+	printKernelVersion
+	printMachine
+	printProcessor
+	printHardwarePlatform
+	printOperatingSystem
 )
 
 func (p printer) isSet(val printer) bool {
@@ -112,80 +69,77 @@ func decode(b bool, flag printer) printer {
 
 func decodeFlags() printer {
 	var toprint printer
-
-	toprint |= decode(*all, MaxUint)
-	toprint |= decode(*kernelName, PrintKernelName)
-	toprint |= decode(*nodeName, PrintNodeName)
-	toprint |= decode(*release, PrintKernelRelease)
-	toprint |= decode(*version, PrintKernelVersion)
-	toprint |= decode(*machine, PrintMachine)
-	toprint |= decode(*processor, PrintProcessor)
-	toprint |= decode(*hwPlatform, PrintHardwarePlatform)
-	toprint |= decode(*operatingSystem, PrintOperatingSystem)
-
+	toprint |= decode(*all, maxUint)
+	toprint |= decode(*kernelName, printKernelName)
+	toprint |= decode(*nodeName, printNodeName)
+	toprint |= decode(*release, printKernelRelease)
+	toprint |= decode(*version, printKernelVersion)
+	toprint |= decode(*machine, printMachine)
+	toprint |= decode(*processor, printProcessor)
+	toprint |= decode(*hwPlatform, printHardwarePlatform)
+	toprint |= decode(*operatingSystem, printOperatingSystem)
 	return toprint
 }
 
-// WHY OH WHY OH WHY DO I HAVE TO USE GO GENERATE.
-
-//go:generate ostypes main
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "%s\n", Help)
-		return
+		fmt.Printf(`Usage: %s [OPTION]...
+Print certain system information. With no OPTION, same as -s.
+
+`, flag.Program)
+		flag.DBE()
 	}
+	flag.ProgVersion = "1.1"
 	flag.Parse()
 
-	if *version {
-		fmt.Printf("%s\n", Version)
-		return
-	}
-
 	toprint := decodeFlags()
-
 	if toprint == 0 {
-		toprint = PrintKernelName
+		toprint = printKernelName
 	}
 
 	if toprint.isSet(
-		(PrintKernelName | PrintNodeName | PrintKernelRelease |
-			PrintKernelVersion | PrintMachine)) {
+		(printKernelName | printNodeName | printKernelRelease |
+			printKernelVersion | printMachine)) {
 
 		name, err := genInfo()
 		if err != nil {
 			fatal.Fatalln("cannot get system name")
 		}
 
-		if toprint.isSet(PrintKernelName) {
+		if toprint.isSet(printKernelName) {
 			print(name.sysname)
 		}
-		if toprint.isSet(PrintNodeName) {
+		if toprint.isSet(printNodeName) {
 			print(name.nodename)
 		}
-		if toprint.isSet(PrintKernelRelease) {
+		if toprint.isSet(printKernelRelease) {
 			print(name.release)
 		}
-		if toprint.isSet(PrintKernelVersion) {
+		if toprint.isSet(printKernelVersion) {
 			print(name.version)
 		}
-		if toprint.isSet(PrintMachine) {
+		if toprint.isSet(printMachine) {
 			print(name.machine)
 		}
 	}
 
-	if toprint.isSet(PrintProcessor) {
-		element := Unknown
-		if !(toprint == MaxUint && element == Unknown) {
+	if toprint.isSet(printProcessor) {
+		element := unknown
+		if toprint != maxUint || element != unknown {
 			print(element)
 		}
 	}
 
-	if toprint.isSet(PrintHardwarePlatform) {
-		element := HostOS
-		if !(toprint == MaxUint && element == Unknown) {
+	if toprint.isSet(printHardwarePlatform) {
+		element := unknown
+		if toprint != maxUint || hostOS != unknown {
 			print(element)
 		}
 	}
 
-	fmt.Println()
+	if toprint.isSet(printOperatingSystem) {
+		print(hostOS)
+	}
+
+	os.Stdout.WriteString("\n")
 }

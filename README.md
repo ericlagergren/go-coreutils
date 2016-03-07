@@ -58,13 +58,13 @@ but for the most part these tools should have nearly the same speed,
 with Go being slightly slower.
 
 ```
-eric@archbox ~/gopath/src/github.com/EricLagergren/go-coreutils/wc $ time ./wc_go -lwmc one_gigabyte_file.txt 
+eric@archbox $ time ./wc_go -lwmc one_gigabyte_file.txt 
   32386258  146084896 1182425560 1183778772 one_gigabyte_file.txt
 
 real  0m25.206s
 user  0m24.900s
 sys   0m0.313s
-eric@archbox ~/gopath/src/github.com/EricLagergren/go-coreutils/wc $ time wc_c -lwmc one_gigabyte_file.txt 
+eric@archbox $ time wc_c -lwmc one_gigabyte_file.txt 
   32386258  146084896 1182425560 1183778772 one_gigabyte_file.txt
 
 real  0m22.841s
@@ -92,12 +92,11 @@ Go version is technically more correct, while the C version is faster.
 Our implementation of `xxd` is actually much faster than the native `xxd`
 implementation found on most *nix machines -- try it out!
 
-## REQUIRES:
+### REQUIRES:
 
 (Depends on platform and command...)
 - go get github.com/EricLagergren/ostypes
 - go get golang.org/x/sys/unix
-- go get github.com/ogier/pflag
 - go get github.com/EricLagergren/go-gnulib/ttyname
 - go get github.com/EricLagergren/go-gnulib/sysinfo
 - go get github.com/EricLagergren/go-gnulib/posix
