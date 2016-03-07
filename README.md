@@ -34,7 +34,8 @@ Also, see https://www.github.com/EricLagergren/go-gnulib for a similar project t
 | tsort   | 100%           | Yes (Unix/Windows)  | No           |
 | tty     | 100%           | Yes (Unix/Windows)  | No           |
 | uname   | 100%           | No                  | No           |
-| uptime  | 90%            | Yes (Unix/Window, no FreeBSD)   | No           |
+| uptime  | 90%            | Yes (Unix/Windows, no FreeBSD)  | No           |
+| users   | 100%           | No                  | No           |
 | wc      | 100%           | Yes (Unix/Windows)  | No           |
 | whoami  | 100%           | Yes (Unix/Windows   | No           |
 | xxd     | 100%           | Yes (Unix/Windows)  | No           |
