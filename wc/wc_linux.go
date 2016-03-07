@@ -1,27 +1,5 @@
-/*
-	Go wc - print the lines, words, bytes, and characters in files
-
-	Copyright (C) 2015 Eric Lagergren
-
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
-	Written by Eric Lagergren <ericscottlagergren@gmail.com>
-	Inspired by GNU's wc, which was written by
-	Paul Rubin, phr@ocf.berkeley.edu and David MacKenzie, djm@gnu.ai.mit.edu
-*/
+// Copyright (c) 2015 Eric Lagergren
+// Use of this source code is governed by the GPL v3 or later.
 
 package main
 
@@ -44,7 +22,7 @@ func wc(file *os.File, cur int64, status fstatus) int {
 		numBytes   int64
 		lineLength int64
 
-		buffer [BufferSize + 1]byte
+		buffer [bufferSize]byte
 
 		// Return value.
 		ok = 0
@@ -60,25 +38,25 @@ func wc(file *os.File, cur int64, status fstatus) int {
 	// counting lines, chars, and words
 	if *printBytes && !*printChars && !*printLines && !countComplicated {
 
-		// Manually count bytes if Stat() failed or if we're reading from
-		// piped input (e.g. cat file.csv | wc -c -)
-		if status.stat == nil || status.stat.Mode()&os.ModeNamedPipe != 0 {
+		if status.failed != nil {
+			status.stat, status.failed = file.Stat()
+		}
 
-			unix.Fadvise(int(file.Fd()), 0, 0, unix.FADV_SEQUENTIAL)
-			for {
-				n, err := file.Read(buffer[:])
-				if err != nil {
-					if err != io.EOF {
-						ok = 1
-					}
-					break
-				}
-				numBytes += int64(n)
-			}
-		} else {
+		// For sized files, seek a block from EOF.
+		// From GNU's source:
+		//
+		// "This works better for files in proc-like file systems where
+		// the size is only approximate."
+		if status.failed == nil &&
+			// Regular file but not stdin.
+			((status.stat.Mode().IsRegular() &&
+				status.stat.Mode()&os.ModeCharDevice != 0) ||
+				status.stat.Mode()&os.ModeSymlink != 0) &&
+			0 < status.stat.Size() {
+
 			numBytes = status.stat.Size()
 			end := numBytes
-			high := end - end%BufferSize
+			high := end - end%(blockSize+1)
 			if cur < 0 {
 				cur, _ = file.Seek(0, os.SEEK_CUR)
 			}
@@ -87,6 +65,18 @@ func wc(file *os.File, cur int64, status fstatus) int {
 					numBytes = high - cur
 				}
 			}
+		}
+
+		unix.Fadvise(int(file.Fd()), 0, 0, unix.FADV_SEQUENTIAL)
+		for {
+			n, err := file.Read(buffer[:])
+			if err != nil {
+				if err != io.EOF {
+					ok = 1
+				}
+				break
+			}
+			numBytes += int64(n)
 		}
 
 		// Use a different loop to lower overhead if we're *only* counting

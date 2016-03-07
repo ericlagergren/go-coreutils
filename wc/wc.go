@@ -1,23 +1,5 @@
-/*
-	Go wc - print the lines, words, bytes, and characters in files
-
-	Copyright (C) 2015 Eric Lagergren
-
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-// Written by Eric Lagergren <ericscottlagergren@gmail.com>
+// Copyright (c) 2015 Eric Lagergren
+// Use of this source code is governed by the GPL v3 or later.
 
 package main
 
@@ -31,47 +13,14 @@ import (
 	"os"
 	"unicode"
 
-	"github.com/davecheney/profile"
+	"github.com/EricLagergren/go-coreutils/internal/flag"
 
 	"github.com/EricLagergren/go-gnulib/sysinfo"
-
-	flag "github.com/ogier/pflag"
 )
 
 const (
-	Version = `Go wc (Go coreutils) 2.2
-Copyright (C) 2014-2015 Eric Lagergren
-License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
-This is free software: you are free to change and redistribute it.
-There is NO WARRANTY, to the extent permitted by law.
-`
-
-	Help = `Usage: wc [OPTION]... [FILE]
-   or: wc [OPTION]... --files0-from [FILE LIST]
-
-Print newline, word, and byte counts for each FILE, and a total line if
-more than one FILE is specified.  With no FILE, or when FILE is -,
-read standard input.  A word is a non-zero-length sequence of characters
-delimited by white space.
-The options below may be used to select which counts are printed, always in
-the following order: newline, word, character, byte, maximum line length.
-  -c, --bytes            print the byte counts
-  -m, --chars            print the character counts
-  -l, --lines            print the newline counts
-      --files0-from=F    read input from NUL-terminated string inside F
-                         * If F is - then read names from standard input
-  -L, --max-line-length  print the length of the longest line
-  -w, --words            print the word counts
-  -t, --tab              change tab width
-  -h, --help             display this help and exit
-  -u, --unicode-version  display unicode version used and exit
-  -v, --version  output  version information and exit
-
-Report wc bugs to ericscottlagergren@gmail.com
-Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>
-`
-	NullByte   = 0x00
-	BufferSize = (64 * 1024)
+	nullByte   = 0x00
+	bufferSize = (64 * 1024)
 )
 
 var (
@@ -90,35 +39,26 @@ var (
 	errNoStat = errors.New("no stat")
 
 	// Our cli args
-	printLines      = flag.BoolP("lines", "l", false, "")
-	printWords      = flag.BoolP("words", "w", false, "")
-	printChars      = flag.BoolP("chars", "m", false, "")
-	printBytes      = flag.BoolP("bytes", "c", false, "")
-	printLineLength = flag.BoolP("max-line-length", "L", false, "")
-	filesFrom       = flag.String("files0-from", "", "")
-	tabWidth        = flag.Int64P("tab", "t", 8, "")
-	constVersion    = flag.BoolP("unicode-version", "u", false, "")
-	version         = flag.BoolP("version", "v", false, "")
+	printLines      = flag.BoolP("lines", "l", false, "print the newline counts")
+	printWords      = flag.BoolP("words", "w", false, "print the word counts")
+	printChars      = flag.BoolP("chars", "m", false, "print the character counts")
+	printBytes      = flag.BoolP("bytes", "c", false, "print the byte counts")
+	printLineLength = flag.BoolP("max-line-length", "L", false, "print the length of the longest line")
+	filesFrom       = flag.String("files0-from", "", `read input from the files specified by
+                             NUL-terminated names in file F;
+                             If F is - then read names from standard input`)
+	tabWidth     = flag.Int64P("tab", "t", 8, "change the tab width")
+	constVersion = flag.BoolP("unicode-version", "u", false, "display unicode version and exit")
 
 	logger = log.New(os.Stderr, "", 0)
-
-	programName = binName()
 )
 
-func binName() string {
-	file := os.Args[0]
-	var i int
-	for i = len(file) - 1; i > 0 && file[i] != '/'; i-- {
-	}
-	return file[i+1:]
-}
-
 func fatal(format string, v ...interface{}) {
-	logger.Fatalf("%s: %s\n", programName, fmt.Sprintf(format, v...))
+	logger.Fatalf("%s: %s\n", flag.Program, fmt.Sprintf(format, v...))
 }
 
 func print(format string, v ...interface{}) {
-	logger.Printf("%s: %s\n", programName, fmt.Sprintf(format, v...))
+	logger.Printf("%s: %s\n", flag.Program, fmt.Sprintf(format, v...))
 }
 
 type fstatus struct {
@@ -166,8 +106,8 @@ func getFileList(name string, size int64) ([]string, int) {
 
 	count := 0
 	for i := 0; i < len(buf); i++ {
-		if buf[i] != NullByte {
-			o := bytes.IndexByte(buf[i:], NullByte)
+		if buf[i] != nullByte {
+			o := bytes.IndexByte(buf[i:], nullByte)
 			if o < 0 {
 				break
 			}
@@ -180,29 +120,28 @@ func getFileList(name string, size int64) ([]string, int) {
 }
 
 func getFileStatus(names []string) []fstatus {
-	nf := 1
 	n := len(names)
+	if n == 0 || (n == 1 && printOne) {
+		return []fstatus{fstatus{failed: errNoStat}}
+	}
+
+	nf := 1
 	if n > 1 {
 		nf = n
 	}
 
 	f := make([]fstatus, nf)
-
-	if n == 0 || (n == 1 && printOne) {
-		f[0] = fstatus{errNoStat, nil}
-	} else {
-		for i, name := range names {
-			var (
-				info os.FileInfo
-				err  error
-			)
-			if name == "-" || name == "" {
-				info, err = os.Stdin.Stat()
-			} else {
-				info, err = os.Stat(name)
-			}
-			f[i] = fstatus{err, info}
+	for i, name := range names {
+		var (
+			info os.FileInfo
+			err  error
+		)
+		if name == "" || name == "-" {
+			info, err = os.Stdin.Stat()
+		} else {
+			info, err = os.Stat(name)
 		}
+		f[i] = fstatus{failed: err, stat: info}
 	}
 	return f
 }
@@ -232,7 +171,6 @@ func findNumberWidth(f []fstatus) int {
 			width = minWidth
 		}
 	}
-
 	return width
 }
 
@@ -283,23 +221,34 @@ func wcFile(name string, status fstatus) int {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "%s", Help)
+		fmt.Printf(`Usage: %s [OPTION]... [FILE]...
+  or:  wc [OPTION]... --files0-from=F
+Print newline, word, and byte counts for each FILE, and a total line if
+more than one FILE is specified.  A word is a non-zero-length sequence of
+characters delimited by white space.
+
+With no FILE, or when FILE is -, read standard input.
+
+The options below may be used to select which counts are printed, always in
+the following order: newline, word, character, byte, maximum line length.
+`, flag.Program)
+		flag.PrintDefaults()
+		fmt.Printf(`
+Report %s bugs to ericscottlagergren@gmail.com
+Go coreutils home page: <https://www.github.com/EricLagergren/go-coreutils/>
+`, flag.Program)
 		os.Exit(0)
 	}
+	flag.ProgVersion = "2.2"
 	flag.Parse()
-
-	p := profile.Start(profile.CPUProfile)
 
 	if *constVersion {
 		fmt.Printf("Unicode Version: %s\n", unicode.Version)
 		os.Exit(0)
 	}
-	if *version {
-		fmt.Printf("%s\n", Version)
-		os.Exit(0)
-	}
 
-	if !(*printBytes || *printChars || *printLines || *printWords || *printLineLength) {
+	if !(*printBytes || *printChars ||
+		*printLines || *printWords || *printLineLength) {
 		*printLines = true
 		*printBytes = true
 		*printWords = true
@@ -347,6 +296,9 @@ func main() {
 	numberWidth = findNumberWidth(fs)
 
 	if reasonable {
+		if files == nil || len(files) == 0 {
+			files = []string{"-"}
+		}
 		for i, file := range files {
 			ok ^= wcFile(file, fs[i])
 		}
@@ -368,13 +320,13 @@ func main() {
 			if atEOF && len(data) == 0 {
 				return 0, nil, nil
 			}
-			if i := bytes.IndexByte(data, NullByte); i >= 0 {
+			if i := bytes.IndexByte(data, nullByte); i >= 0 {
 				// We have a full newline-terminated line.
-				return i + 1, dropNullByte(numFiles, data[0:i]), nil
+				return i + 1, dropnullByte(numFiles, data[0:i]), nil
 			}
 			// If we're at EOF, we have a final, non-terminated line. Return it.
 			if atEOF {
-				return len(data), dropNullByte(numFiles, data), nil
+				return len(data), dropnullByte(numFiles, data), nil
 			}
 			// Request more data.
 			return 0, nil, nil
@@ -392,16 +344,14 @@ func main() {
 			totalChars, totalBytes, maxLineLength, "total")
 	}
 
-	p.Stop()
-
 	// Return status.
 	os.Exit(ok)
 }
 
-func dropNullByte(i int, data []byte) []byte {
-	if len(data) > 0 && data[len(data)-1] == NullByte {
+func dropnullByte(i int, data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == nullByte {
 		return data[0 : len(data)-1]
 	}
 	fatal("invalid zero-length file name at position: %d", i)
-	return data
+	panic("unreachable")
 }

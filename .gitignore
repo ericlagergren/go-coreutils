@@ -31,3 +31,5 @@ coreutils/
 # binary
 go-coreutils
 
+coreutils
+glibc

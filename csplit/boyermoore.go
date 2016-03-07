@@ -1,7 +1,5 @@
 package main
 
-import ()
-
 var BuffSize = 7
 
 func main() {

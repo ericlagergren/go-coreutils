@@ -1,31 +1,10 @@
-/*
-	Go wc - print the lines, words, bytes, and characters in files
-
-	Copyright (C) 2015 Eric Lagergren
-
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
-	Written by Eric Lagergren <ericscottlagergren@gmail.com>
-	Inspired by GNU's wc, which was written by
-	Paul Rubin, phr@ocf.berkeley.edu and David MacKenzie, djm@gnu.ai.mit.edu
-*/
+// Copyright (c) 2015 Eric Lagergren
+// Use of this source code is governed by the GPL v3 or later.
 
 package main
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"unicode"
@@ -33,7 +12,7 @@ import (
 )
 
 // string of file name, file offset, and fstatus struct
-func wc(file *os.File, cur int64, status *fstatus) int {
+func wc(file *os.File, cur int64, status fstatus) int {
 	// Our temp number of lines, words, chars, and bytes
 	var (
 		lines      int64
@@ -41,45 +20,42 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 		chars      int64
 		numBytes   int64
 		lineLength int64
-		linePos    int64
-		inWord     int64
 
-		buffer = make([]byte, BufferSize)
-		// return value
+		buffer [bufferSize + 1]byte
+
+		// Return value.
 		ok = 0
 	)
 
 	countComplicated := *printWords || *printLineLength
 
-	/* Normally we'd call fadvise() here but Windows doesn't *really*
-	support that... */
+	// Normally we'd call fadvise() here but Windows doesn't *really*
+	// support that...
 
-	// If we simply want the bytes we can ignore the overhead (see: GNU
-	// wc.c by Paul Rubin and David MacKenzie) of counting lines, chars,
-	// and words
 	if *printBytes && !*printChars && !*printLines && !countComplicated {
 
 		// Manually count bytes if Stat() failed or if we're reading from
 		// piped input (e.g. cat file.csv | wc -c -)
-		if status.stat == nil || status.stat.Mode()&os.ModeNamedPipe != 0 {
-			for {
-				n, err := file.Read(buffer)
-				if err != nil && err != io.EOF {
-					ok = 1
-					break
-				}
+		if status.failed != nil {
+			status.stat, status.failed = file.Stat()
+		}
 
-				numBytes += int64(n)
+		// For sized files, seek a block from EOF.
+		// From GNU's source:
+		//
+		// "This works better for files in proc-like file systems where
+		// the size is only approximate."
+		if status.failed == nil &&
+			// Regular file but not stdin.
+			((status.stat.Mode().IsRegular() &&
+				status.stat.Mode()&os.ModeCharDevice != 0) ||
+				status.stat.Mode()&os.ModeSymlink != 0) &&
+			0 < status.stat.Size() {
 
-				if err == io.EOF {
-					break
-				}
-			}
-		} else {
 			numBytes = status.stat.Size()
 			end := numBytes
-			high := end - end%BufferSize
-			if cur <= 0 {
+			high := end - end%(blockSize+1)
+			if cur < 0 {
 				cur, _ = file.Seek(0, os.SEEK_CUR)
 			}
 			if 0 <= cur && cur < high {
@@ -89,13 +65,26 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 			}
 		}
 
+		for {
+			n, err := file.Read(buffer[:])
+			if err != nil {
+				if err != io.EOF {
+					ok = 1
+				}
+				break
+			}
+			numBytes += int64(n)
+		}
+
 		// Use a different loop to lower overhead if we're *only* counting
 		// lines (or lines and bytes)
 	} else if !*printChars && !countComplicated {
 		for {
-			n, err := file.Read(buffer)
-			if err != nil && err != io.EOF {
-				ok = 1
+			n, err := file.Read(buffer[:])
+			if err != nil {
+				if err != io.EOF {
+					ok = 1
+				}
 				break
 			}
 
@@ -112,20 +101,25 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 			}
 
 			numBytes += int64(n)
-
-			if err == io.EOF {
-				break
-			}
 		}
 	} else {
+		var (
+			inWord  int64
+			linePos int64
+		)
 		for {
-			n, err := file.Read(buffer)
+			n, err := file.Read(buffer[:])
+			if err != nil {
+				if err != io.EOF {
+					ok = 1
+				}
+				break
+			}
+
 			numBytes += int64(n)
 
-			b := buffer[:n]
-
-			for len(b) > 0 {
-				r, s := utf8.DecodeRune(b)
+			for bp := 0; bp < n; {
+				r, s := utf8.DecodeRune(buffer[bp:])
 
 				switch r {
 				case '\n':
@@ -153,19 +147,16 @@ func wc(file *os.File, cur int64, status *fstatus) int {
 				default:
 					if unicode.IsPrint(r) {
 						linePos++
+						if unicode.IsSpace(r) {
+							words += inWord
+							inWord = 0
+						}
 						inWord = 1
 					}
 				}
 
 				chars++
-				b = b[s:]
-			}
-
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				ok = 1
-				break
+				bp += s
 			}
 		}
 		if linePos > lineLength {
