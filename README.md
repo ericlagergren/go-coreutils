@@ -19,7 +19,10 @@ Also, see https://www.github.com/EricLagergren/go-gnulib for a similar project t
 
 ### Completed:
 
-17/100
+* 100% Completion
+ * 15/100
+* Partial Completion
+ * 2/100
 
 | Utility | Completeness   | Cross Platform      | Need Refactor|
 |:--------|:---------------|:--------------------|:-------------|
