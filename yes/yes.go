@@ -29,8 +29,7 @@ There is NO WARRANTY, to the extent permitted by law.
 var (
 	version = flag.BoolP("version", "v", false, "")
 
-	LineFeed = []byte("\n")
-	Space    = []byte(" ")
+	lineFeed = "\n"
 )
 
 func main() {
@@ -49,16 +48,18 @@ func main() {
 	if flag.NArg() == 0 {
 		args = []string{"y"}
 	}
+	// Add \n at the end of the of "y" or argument
+	args[0] = args[0] + lineFeed
+
+	// Fixed []byte array will increase performance by x~100
+	arg := make([]byte, 4096)
+
+	for n := 0; n < (len(arg) + 1 - len(args[0])); n += len(args[0]) {
+		copy(arg[n:], args[0])
+	}
 
 	for {
-		for i, arg := range args {
-			os.Stdout.WriteString(arg)
-
-			if i == len(args)-1 {
-				os.Stdout.Write(LineFeed)
-			} else {
-				os.Stdout.Write(Space)
-			}
-		}
+		os.Stdout.Write(arg)
 	}
+
 }
