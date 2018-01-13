@@ -1,4 +1,6 @@
-package main
+// +build ignore
+
+package wc
 
 import (
 	"bytes"

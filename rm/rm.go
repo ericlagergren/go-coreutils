@@ -73,9 +73,7 @@ There is NO WARRANTY, to the extent permitted by law.
 `
 )
 
-var (
-	version = flag.BoolP("version", "v", false, "")
-)
+var version = flag.BoolP("version", "v", false, "")
 
 func main() {
 	flag.Usage = func() {
