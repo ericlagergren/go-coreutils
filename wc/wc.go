@@ -49,12 +49,12 @@ var newLine = []byte{'\n'}
 
 func (c *Counter) Count(r io.Reader) (res Results, err error) {
 	if file, ok := r.(*os.File); ok {
-		sys.Fadvise(int(file.Fd()))
 		if c.opts&Bytes == Bytes {
 			if n, ok := statSize(file); ok {
 				return Results{Bytes: n}, nil
 			}
 		}
+		sys.Fadvise(int(file.Fd()))
 	}
 	switch c.opts {
 	case Bytes:

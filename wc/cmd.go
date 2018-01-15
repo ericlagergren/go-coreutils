@@ -10,15 +10,31 @@ import (
 	"os"
 	"unicode"
 
-	"github.com/ericlagergren/go-coreutils/coreutils"
-	"github.com/ericlagergren/go-coreutils/internal/flag"
+	coreutils "github.com/ericlagergren/go-coreutils"
+	flag "github.com/spf13/pflag"
 )
 
 func init() {
-	coreutils.Register("wc", cmd{})
+	coreutils.Register("wc", run)
+}
+
+func newCommand() *cmd {
+	var c cmd
+	c.f.BoolVarP(&c.lines, "lines", "l", false, "print the newline counts")
+	c.f.BoolVarP(&c.words, "words", "w", false, "print the word counts")
+	c.f.BoolVarP(&c.chars, "chars", "m", false, "print the character counts")
+	c.f.BoolVarP(&c.bytes, "bytes", "c", false, "print the byte counts")
+	c.f.BoolVarP(&c.maxLength, "max-line-length", "L", false, "print the length of the longest line")
+	c.f.StringVar(&c.filesFrom, "files0-from", "", `read input from the files specified by
+                             NUL-terminated names in file F;
+                             If F is - then read names from standard input`)
+	c.f.Int64VarP(&c.tabWidth, "tab", "t", 8, "change the tab width")
+	c.f.BoolVarP(&c.unicode, "unicode-version", "u", false, "display unicode version and exit")
+	return &c
 }
 
 type cmd struct {
+	f                                     flag.FlagSet
 	lines, words, chars, bytes, maxLength bool
 	filesFrom                             string
 	tabWidth                              int64
@@ -27,22 +43,12 @@ type cmd struct {
 
 var errMixedArgs = errors.New("file operands cannot be combined with --files0-from")
 
-func (c cmd) Run(ctx coreutils.Ctx, args ...string) error {
-	var f flag.FlagSet
-	f.BoolVarP(&c.lines, "lines", "l", false, "print the newline counts")
-	f.BoolVarP(&c.words, "words", "w", false, "print the word counts")
-	f.BoolVarP(&c.chars, "chars", "m", false, "print the character counts")
-	f.BoolVarP(&c.bytes, "bytes", "c", false, "print the byte counts")
-	f.BoolVarP(&c.maxLength, "max-line-length", "L", false, "print the length of the longest line")
-	f.StringVar(&c.filesFrom, "files0-from", "", `read input from the files specified by
-                             NUL-terminated names in file F;
-                             If F is - then read names from standard input`)
-	f.Int64VarP(&c.tabWidth, "tab", "t", 8, "change the tab width")
-	f.BoolVarP(&c.unicode, "unicode-version", "u", false, "display unicode version and exit")
+func run(ctx coreutils.Ctx, args ...string) error {
+	c := newCommand()
 
 	// TODO(eric): usage
 
-	if err := f.Parse(args); err != nil {
+	if err := c.f.Parse(args); err != nil {
 		return err
 	}
 
@@ -78,7 +84,7 @@ func (c cmd) Run(ctx coreutils.Ctx, args ...string) error {
 		Text() string
 	}
 	if c.filesFrom == "" {
-		if f.NArg() == 0 {
+		if c.f.NArg() == 0 {
 			res, err := ctr.Count(ctx.Stdin)
 			if err != nil {
 				fmt.Fprintln(ctx.Stderr, err)
@@ -88,9 +94,9 @@ func (c cmd) Run(ctx coreutils.Ctx, args ...string) error {
 			writeCounts(ctx.Stdout, minWidth, opts, res, "-")
 			return nil
 		}
-		s = &sliceScanner{s: f.Args()}
+		s = &sliceScanner{s: c.f.Args()}
 	} else {
-		if f.NArg() > 0 {
+		if c.f.NArg() > 0 {
 			fmt.Fprintln(ctx.Stderr, errMixedArgs)
 			return errMixedArgs
 		}
