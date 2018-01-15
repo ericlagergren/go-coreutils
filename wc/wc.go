@@ -88,8 +88,9 @@ func (c *Counter) Count(r io.Reader) (res Results, err error) {
 func (c *Counter) countComplicated(r io.Reader) (res Results, err error) {
 	var (
 		pos    int64
-		inword int64
+		inWord bool
 	)
+
 	for {
 		n, err := c.read(r)
 		res.Bytes += n
@@ -106,25 +107,29 @@ func (c *Counter) countComplicated(r io.Reader) (res Results, err error) {
 			case '\n':
 				res.Lines++
 				fallthrough
-			case '\r':
-				fallthrough
-			case '\f':
+			case '\r', '\f':
 				if pos > res.MaxLength {
 					res.MaxLength = pos
 				}
 				pos = 0
-				res.Words += inword
-				inword = 0
+				if inWord {
+					res.Words++
+				}
+				inWord = false
 			case '\t':
 				pos += c.TabWidth - (pos % c.TabWidth)
-				res.Words += inword
-				inword = 0
+				if inWord {
+					res.Words++
+				}
+				inWord = false
 			case ' ':
 				pos++
 				fallthrough
 			case '\v':
-				res.Words += inword
-				inword = 0
+				if inWord {
+					res.Words++
+				}
+				inWord = false
 			default:
 				if !unicode.IsPrint(r) {
 					break
@@ -132,10 +137,12 @@ func (c *Counter) countComplicated(r io.Reader) (res Results, err error) {
 
 				pos++
 				if unicode.IsSpace(r) {
-					res.Words += inword
-					inword = 0
+					if inWord {
+						res.Words++
+					}
+					inWord = false
 				} else {
-					inword = 1
+					inWord = true
 				}
 			}
 			res.Chars++
@@ -145,7 +152,9 @@ func (c *Counter) countComplicated(r io.Reader) (res Results, err error) {
 	if pos > res.MaxLength {
 		res.MaxLength = pos
 	}
-	res.Words += inword
+	if inWord {
+		res.Words++
+	}
 	return res, nil
 }
 

@@ -74,6 +74,10 @@ func run(ctx coreutils.Ctx, args ...string) error {
 		opts |= MaxLength
 	}
 
+	if opts == 0 {
+		opts = Lines | Words | Bytes
+	}
+
 	ctr := NewCounter(opts)
 	ctr.TabWidth = c.tabWidth
 
@@ -81,6 +85,7 @@ func run(ctx coreutils.Ctx, args ...string) error {
 		Scan() bool
 		Text() string
 	}
+	var hint int // To keep from allocating, if possible.
 	if c.filesFrom == "" {
 		if c.f.NArg() == 0 {
 			res, err := ctr.Count(ctx.Stdin)
@@ -88,11 +93,11 @@ func run(ctx coreutils.Ctx, args ...string) error {
 				fmt.Fprintln(ctx.Stderr, err)
 				return err
 			}
-			// TODO(eric): name? stdin? blank?
-			writeCounts(ctx.Stdout, 7, opts, res, "-")
+			writeCounts(ctx.Stdout, 0, opts, res, "")
 			return nil
 		}
 		s = &sliceScanner{s: c.f.Args()}
+		hint = c.f.NArg()
 	} else {
 		if c.f.NArg() > 0 {
 			fmt.Fprintln(ctx.Stderr, errMixedArgs)
@@ -108,10 +113,12 @@ func run(ctx coreutils.Ctx, args ...string) error {
 		s.(*bufio.Scanner).Split(filesFromSplit)
 	}
 
-	var rs []Results
-	var names []string
-	var t Results
-	var maxBytes int64
+	var (
+		results  = make([]Results, 0, hint)
+		names    = make([]string, 0, hint)
+		total    Results
+		maxBytes int64
+	)
 
 	for s.Scan() {
 		fname := s.Text()
@@ -127,20 +134,20 @@ func run(ctx coreutils.Ctx, args ...string) error {
 			fmt.Fprintln(ctx.Stderr, err)
 			return err
 		}
-		rs = append(rs, res)
+		results = append(results, res)
 		names = append(names, fname)
 
-		t.Lines += res.Lines
-		t.Words += res.Words
-		t.Chars += res.Chars
-		t.Bytes += res.Bytes
+		total.Lines += res.Lines
+		total.Words += res.Words
+		total.Chars += res.Chars
+		total.Bytes += res.Bytes
 
 		if res.Bytes > maxBytes {
 			maxBytes = res.Bytes
 		}
 
-		if res.MaxLength > t.MaxLength {
-			t.MaxLength = res.MaxLength
+		if res.MaxLength > total.MaxLength {
+			total.MaxLength = res.MaxLength
 		}
 
 		if err := file.Close(); err != nil {
@@ -153,11 +160,14 @@ func run(ctx coreutils.Ctx, args ...string) error {
 	// Since this can be hard to read, it's
 	//    (((64 - clz(n) + 1) * 1233) >> 12) + 1
 	width := int(((64-bits.LeadingZeros64(uint64(maxBytes))+1)*1233)>>12) + 1
-	for i, r := range rs {
+	if width < 7 {
+		width = 7
+	}
+	for i, r := range results {
 		writeCounts(ctx.Stdout, width, opts, r, names[i])
 	}
-	if len(rs) > 1 {
-		writeCounts(ctx.Stdout, width, opts, t, "total")
+	if len(results) > 1 {
+		writeCounts(ctx.Stdout, width, opts, total, "total")
 	}
 	return nil
 }
