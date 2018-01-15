@@ -77,8 +77,6 @@ func run(ctx coreutils.Ctx, args ...string) error {
 	ctr := NewCounter(opts)
 	ctr.TabWidth = c.tabWidth
 
-	const minWidth = 7 // default width for printing
-
 	var s interface {
 		Scan() bool
 		Text() string
@@ -91,7 +89,7 @@ func run(ctx coreutils.Ctx, args ...string) error {
 				return err
 			}
 			// TODO(eric): name? stdin? blank?
-			writeCounts(ctx.Stdout, minWidth, opts, res, "-")
+			writeCounts(ctx.Stdout, 7, opts, res, "-")
 			return nil
 		}
 		s = &sliceScanner{s: c.f.Args()}
