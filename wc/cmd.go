@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/bits"
 	"os"
 	"unicode"
@@ -93,7 +94,11 @@ func run(ctx coreutils.Ctx, args ...string) error {
 				fmt.Fprintln(ctx.Stderr, err)
 				return err
 			}
-			writeCounts(ctx.Stdout, 0, opts, res, "")
+			width := 7
+			if opts&(opts-1) == 0 { // power of 2, so 1 argument set.
+				width = 1
+			}
+			writeCounts(ctx.Stdout, width, opts, res, "")
 			return nil
 		}
 		s = &sliceScanner{s: c.f.Args()}
@@ -118,6 +123,7 @@ func run(ctx coreutils.Ctx, args ...string) error {
 		names    = make([]string, 0, hint)
 		total    Results
 		maxBytes int64
+		minWidth = 1
 	)
 
 	for s.Scan() {
@@ -127,6 +133,11 @@ func run(ctx coreutils.Ctx, args ...string) error {
 		if err != nil {
 			fmt.Fprintln(ctx.Stderr, err)
 			return err
+		}
+
+		stat, err := file.Stat()
+		if err != nil || (err == nil && !stat.Mode().IsRegular()) {
+			minWidth = 7
 		}
 
 		res, err := ctr.Count(file)
@@ -156,12 +167,15 @@ func run(ctx coreutils.Ctx, args ...string) error {
 		}
 	}
 
-	// Fast integer log 10. Possibly +1 too large, but that's fine.
-	// Since this can be hard to read, it's
-	//    (((64 - clz(n) + 1) * 1233) >> 12) + 1
-	width := int(((64-bits.LeadingZeros64(uint64(maxBytes))+1)*1233)>>12) + 1
-	if width < 7 {
-		width = 7
+	// Fast integer log 10. The call to math.Pow and subsequent comparison can
+	// be dropped in favor of simply adding +1 to width if it's alright for the
+	// result to be +1 too large for some numbers.
+	width := int((bits.Len64(uint64(maxBytes)) * 1233) >> 12)
+	if int64(math.Pow10(width)) < maxBytes {
+		width++
+	}
+	if width < minWidth {
+		width = minWidth
 	}
 	for i, r := range results {
 		writeCounts(ctx.Stdout, width, opts, r, names[i])
