@@ -1,6 +1,7 @@
 package coreutils
 
 import (
+	"context"
 	"errors"
 	"io"
 	"sync"
@@ -18,9 +19,10 @@ func Register(name string, r Runnable) {
 	cmds[name] = r
 }
 
-type Runnable func(ctx Ctx, args ...string) error
+type Runnable func(ctx Context, args ...string) error
 
-type Ctx struct {
+type Context struct {
+	context.Context
 	Dir    string
 	GetEnv func(string) string
 	Stdin  io.Reader
@@ -28,7 +30,7 @@ type Ctx struct {
 	Stderr io.Writer
 }
 
-func Run(ctx Ctx, name string, args ...string) error {
+func Run(ctx Context, name string, args ...string) error {
 	cmdsMu.Lock()
 	fn := cmds[name]
 	cmdsMu.Unlock()

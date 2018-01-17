@@ -31,6 +31,7 @@ func newCommand() *cmd {
                              If F is - then read names from standard input`)
 	c.f.Int64VarP(&c.tabWidth, "tab", "t", 8, "change the tab width")
 	c.f.BoolVarP(&c.unicode, "unicode-version", "u", false, "display unicode version and exit")
+	c.f.BoolVar(&c.version, "version", false, "display version information and exit")
 	return &c
 }
 
@@ -40,17 +41,21 @@ type cmd struct {
 	filesFrom                             string
 	tabWidth                              int64
 	unicode                               bool
+	version                               bool
 }
 
 var errMixedArgs = errors.New("file operands cannot be combined with --files0-from")
 
-func run(ctx coreutils.Ctx, args ...string) error {
+func run(ctx coreutils.Context, args ...string) error {
 	c := newCommand()
-
-	// TODO(eric): usage
 
 	if err := c.f.Parse(args); err != nil {
 		return err
+	}
+
+	if c.version {
+		fmt.Fprintf(ctx.Stdout, "wc (go-coreutils) 1.0")
+		return nil
 	}
 
 	if c.unicode {
